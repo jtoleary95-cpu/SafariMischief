@@ -56,6 +56,16 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .sheet-in li .who{min-width:44px;text-align:center}
 .sheet-in li.done span:last-child{text-decoration:line-through;opacity:.5}
 .sheet-in li.done .who::after{content:" ✓";color:#2E7D32;font-weight:700}
+
+.recs{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.rec{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rec .rn{flex:1 1 120px;font-weight:700}
+.rec .mine{font-style:normal;font-size:12px;background:#C8E6C9;border-radius:8px;padding:1px 6px;margin-left:4px}
+.mini{font:inherit;font-size:13px;font-weight:700;padding:6px 9px;border:2px solid var(--ink);border-radius:10px;background:#fff;cursor:pointer}
+.small{font-size:13px}
+.done-card{position:fixed;inset:0;background:rgba(46,42,58,.6);display:flex;align-items:center;justify-content:center;z-index:6;padding:16px}
+.done-card .card{max-width:480px;width:100%;max-height:88%;overflow:auto}
+.sus{position:absolute}
 </style></head><body><div id="app"></div>
 <script>
 /* ===== FIREBASE CONFIG (same project as Deep Salvo and Sovereign) ===== */
@@ -266,6 +276,63 @@ const AMB = {
     if(k === "kids"){ if(r < .25) SFX.laugh(1.6); }
   }
 };
+
+/* ===== your own recordings (like Deep Salvo): Record or pick a file per sound, saved on this phone ===== */
+const REC_SLOTS = [["snort", "Ginger snort", "animal"], ["hum", "Ginger hum", "animal"], ["bellow", "Harriet bellow", "animal"], ["grunt", "Harriet grunt", "animal"],
+  ["stepG", "Ginger footstep", "steps"], ["stepH", "Harriet footstep", "steps"], ["done", "Prank done", "jingle"], ["big", "Big prank done", "jingle"], ["spot", "Spotted!", "jingle"], ["pen", "Locked in the pen", "jingle"]];
+const RECCAT = Object.fromEntries(REC_SLOTS.map(s => [s[0], s[2]]));
+recPlay = function(k){ const a = ac(), cat = RECCAT[k] || "animal"; if(!a || !REC[k] || !sndOn(cat)) return false; const s = a.createBufferSource(); s.buffer = REC[k];
+  if(cat !== "jingle") s.playbackRate.value = .95 + Math.random() * .1; s.connect(bus(cat, BUSV[cat])); s.start(); return true; };
+const RECDB = {db: null, async open(){ if(this.db) return this.db; this.db = await new Promise((res, rej) => { const r = indexedDB.open("safari_rec", 1); r.onupgradeneeded = () => r.result.createObjectStore("s"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); return this.db; },
+  async op(mode, f){ const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction("s", mode), st = t.objectStore("s"), q = f(st); t.oncomplete = () => res(q?.result); t.onerror = () => rej(t.error); }); },
+  put(k, blob){ return this.op("readwrite", s => s.put(blob, k)); }, del(k){ return this.op("readwrite", s => s.delete(k)); }, get(k){ return this.op("readonly", s => s.get(k)); }};
+async function recDecode(k, blob){ try{ const a = ac(); if(!a || !blob) return false; REC[k] = await a.decodeAudioData(await blob.arrayBuffer()); return true; }catch{ return false; } }
+async function recLoadAll(){ for(const [k] of REC_SLOTS){ try{ const b = await RECDB.get(k); if(b) await recDecode(k, b); }catch{} } }
+async function recSave(k, blob){ if(!blob || blob.size < 200) return "That recording was empty."; if(blob.size > 1500000) return "Too long. Keep it under 3 seconds.";
+  if(!(await recDecode(k, blob))) return "Couldn't read that sound file."; try{ await RECDB.put(k, blob); }catch{ return "Couldn't save on this phone."; } return ""; }
+async function recClear(k){ delete REC[k]; try{ await RECDB.del(k); }catch{} }
+/* every built-in sound with a slot plays your recording first, if you made one */
+for(const k of ["snort", "hum", "bellow", "grunt", "done", "big", "spot", "pen"]){ const orig = SFX[k]; if(orig) SFX[k] = function(...a){ if(recPlay(k)) return; return orig.apply(this, a); }; }
+{ const origStep = SFX.step; SFX.step = function(role){ if(recPlay(role === "H" ? "stepH" : "stepG")) return; return origStep.call(this, role); }; }
+/* Record: in-page microphone where allowed (up to 3 s); otherwise the phone's own recorder / file picker */
+const RECORDER = {mr: null, key: null, timer: 0,
+  async start(k, onState){ if(this.mr) return this.stop(); if(!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder)) return "nomic";
+    let stream; try{ stream = await navigator.mediaDevices.getUserMedia({audio: true}); }catch{ return "nomic"; }
+    const chunks = [], mr = new MediaRecorder(stream); this.mr = mr; this.key = k; mr.ondataavailable = e => e.data.size && chunks.push(e.data);
+    mr.onstop = async () => { stream.getTracks().forEach(t => t.stop()); clearTimeout(this.timer); const key = this.key; this.mr = null; this.key = null;
+      const err = await recSave(key, new Blob(chunks, {type: mr.mimeType || "audio/webm"})); onState?.(key, err || "saved"); };
+    mr.start(); onState?.(k, "rec"); this.timer = setTimeout(() => this.stop(), 3000); return "";
+  },
+  stop(){ if(this.mr && this.mr.state !== "inactive") this.mr.stop(); return ""; }};
+recLoadAll();
+
+/* shared sound settings panel: used on the title screen and in the in-game menu */
+function soundPanelHTML(){
+  return `<h3>Sound</h3><div class="snd">${SND_CATS.map(([k, n]) => `<label><input type="checkbox" data-snd="${k}" ${sndOn(k) ? "checked" : ""}> ${n}</label>`).join("")}</div>
+  <h3>Your own sounds</h3><p class="muted small">Record or pick a file for any sound. It replaces the built-in one, on this phone only.</p>
+  <div class="recs">${REC_SLOTS.map(([k, n]) => `<div class="rec" data-k="${k}"><span class="rn">${n}${REC[k] ? ` <i class="mine">yours</i>` : ""}</span>
+    <button class="mini" data-p>▶</button><button class="mini" data-r>● Record</button><button class="mini" data-f>File</button>${REC[k] ? `<button class="mini" data-reset title="Back to built-in">↺</button>` : ""}</div>`).join("")}</div>
+  <input type="file" accept="audio/*" class="recpick" hidden><input type="file" accept="audio/*" capture class="reccap" hidden><p class="recmsg muted small"></p>`;
+}
+function bindSoundPanel(root, onToggle){
+  const msg = t => { const m = root.querySelector(".recmsg"); if(m) m.textContent = t; };
+  const redraw = () => { const box = root.querySelector(".sndpanel"); if(box){ box.innerHTML = soundPanelHTML(); bindSoundPanel(root, onToggle); } };
+  root.querySelectorAll("[data-snd]").forEach(b => b.onchange = () => { setSnd(b.dataset.snd, b.checked); onToggle?.(b.dataset.snd, b.checked); });
+  let pickKey = null; const pick = root.querySelector(".recpick"), cap = root.querySelector(".reccap");
+  const got = async e => { const f = e.target.files?.[0]; e.target.value = ""; if(!f || !pickKey) return; const err = await recSave(pickKey, f); if(!err) redraw(); msg(err || "Saved."); };
+  if(pick) pick.onchange = got; if(cap) cap.onchange = got;
+  root.querySelectorAll(".rec").forEach(row => { const k = row.dataset.k, cat = RECCAT[k];
+    row.querySelector("[data-p]").onclick = () => { ac(); const was = SNDCFG[cat]; SNDCFG[cat] = 1; if(!recPlay(k)){ if(k === "stepG" || k === "stepH") SFX.step(k === "stepH" ? "H" : "G"); else SFX[k]?.(); } SNDCFG[cat] = was; };
+    row.querySelector("[data-f]").onclick = () => { pickKey = k; pick.click(); };
+    const x = row.querySelector("[data-reset]"); if(x) x.onclick = async () => { await recClear(k); redraw(); msg("Back to the built-in sound."); };
+    const rb = row.querySelector("[data-r]");
+    rb.onclick = async () => {
+      if(RECORDER.mr){ RECORDER.stop(); return; }
+      const r = await RECORDER.start(k, (key, st) => { if(st === "rec"){ rb.textContent = "■ Stop"; msg("Recording… (up to 3 seconds)"); } else { redraw(); msg(st === "saved" ? "Saved." : st); } });
+      if(r === "nomic"){ pickKey = k; cap.click(); msg("Your phone's recorder will open. Record, save, and it lands here."); }
+    };
+  });
+}
 
 /* ===================== SAFARI MISCHIEF: world data ===================== */
 const AW = 900, AH = 1200;          // every area is 900 x 1200 world units
@@ -862,7 +929,7 @@ class World {
     if(!best) return;
     if(isFix){ best.n++; this.emit("use", {who: role, obj: best.id}); if(best.id === this.A.pen?.gate) this.gateTry(role); this.A.hooks?.use?.(this.W, best.id, role); return; }
     if(best.wear && (!best.wearBy || best.wearBy === role)){ best.worn = role; this.emit("wear", {who: role, obj: best.id}); this.A.hooks?.grab?.(this.W, best.id, role); return; }
-    const from = this.npc(best.holder); if(from){ from.startle = this.t + 1.6; this.emote(from.id, "😲", 1.6); this.emit("say", {obj: from.id, s: "gasp"}); }
+    const from = this.npc(best.holder); if(from){ from.startle = this.t + 1.6; this.emote(from.id, "😲", 1.6); this.emit("say", {obj: from.id, s: "gasp"}); from.pend = {who: role, obj: best.id, at: this.t + 1.6}; }
     best.holder = role; best.stay = false; this.emit("grab", {who: role, obj: best.id}); this.A.hooks?.grab?.(this.W, best.id, role);
   }
   drop(role){
@@ -937,6 +1004,13 @@ class World {
     this.step(n, n.path[0] || tgt, speed, dt, false); return false;
   }
   step(n, w, speed, dt, swim){ const dx = w.x - n.x, dy = w.y - n.y, d = Math.hypot(dx, dy) || 1, s = Math.min(d, speed * dt); n.x += dx / d * s; n.y += dy / d * s; n.dir = Math.atan2(dy, dx); if(!swim) collide(n, 14, this.A, this.objs); n.moving = this.t; }
+  callStaff(n, r){ // a guest spots mischief and shouts for staff, who come running to investigate
+    if(this.t < (n.called || 0)) return; n.called = this.t + 8; const o = this.held(r), own = o && this.npc(o.own), a = this.P[r]; if(!a) return;
+    const free = m => m.staff && !["chase", "script", "busy", "return"].includes(m.st);
+    const staff = own && free(own) ? own : this.npcs.filter(free).sort((p, q) => Math.hypot(p.x - n.x, p.y - n.y) - Math.hypot(q.x - n.x, q.y - n.y))[0];
+    this.say(n.id, `STAFF! The ${r === "G" ? "giraffe" : "hippo"} has ${own ? (own.name ? "the " + own.name.toLowerCase() + "'s stuff" : "something") : "something"}!`, 2.2, "hey"); this.emote(n.id, "📣", 2);
+    this.emit("call", {obj: n.id, who: r, staff: staff?.id || ""});
+    if(staff){ staff.st = "investigate"; staff.tgt = {x: a.x, y: a.y}; staff.timer = 0; staff.path = null; staff.sus = .6; this.say(staff.id, "On my way!", 1.5, "hey"); } }
   sees(n, a){ if(!a) return false; const dx = a.x - n.x, dy = a.y - n.y, d = Math.hypot(dx, dy), g = Math.max(n.grudge?.G || 0, n.grudge?.H || 0); if(d > SIGHT * (1 + .2 * g)) return false; if(d < 80) return true;
     let da = Math.atan2(dy, dx) - n.dir; da = Math.atan2(Math.sin(da), Math.cos(da)); return Math.abs(da) < 1.2; }
   chase(n, role, why){ if(this.flag["pen_" + role] || this.immune[role] > this.t) return; if(n.st !== "chase") { this.emit("spot", {obj: n.id, who: role}); this.say(n.id, why === "staff" ? "Staff only!" : why === "item" ? "Hey! That's mine!" : "HEY!", 1.6, "hey"); }
@@ -944,15 +1018,24 @@ class World {
   disguised(r){ return this.objs.some(o => o.worn === r && o.disguise); }
   npcTick(n, dt){
     if(n.startle && this.t < n.startle){ n.dir += dt * 4; return; }
+    if(n.pend && this.t >= n.pend.at){ const p = n.pend; n.pend = null; if(this.held(p.who)?.id === p.obj) this.chase(n, p.who, "item"); } // you felt that snatch: they come after you
     if(n.bub && this.t > n.bub.until) n.bub = null; if(n.emo && this.t > n.emo.until) n.emo = null;
     if(["busy", "photo"].includes(n.st)){ if(n.st === "photo"){ n.timer -= dt; if(n.timer <= 0){ n.timer = n.every || 4; this.photo(n); } } return; }
     if(["post", "wander", "route", "investigate", "sit"].includes(n.st)){
       n.vt -= dt; if(n.vt <= 0){ n.vt = .25;
+        let saw = false;
         for(const r of ["G", "H"]){ const a = this.P[r]; if(!a || this.flag["pen_" + r] || this.immune[r] > this.t || !this.sees(n, a)) continue;
-          const o = this.held(r);
-          if(o && (o.own === n.id || (o.own === "*" && n.staff))){ this.chase(n, r, "item"); break; }
-          if(n.staff && (this.A.staffZ || []).some(z => this.inZ(r, z)) && !this.disguised(r)){ this.chase(n, r, "staff"); break; }
+          const o = this.held(r), ownN = o && o.own ? this.npc(o.own) : null;
+          const why = o && (o.own === n.id || (o.own === "*" && n.staff)) ? "item"
+            : n.staff && (this.A.staffZ || []).some(z => this.inZ(r, z)) && !this.disguised(r) ? "staff"
+            : o && !n.staff && ownN && ownN.staff && ownN !== n ? "tattle" : null;
+          if(why){ saw = true; const d = Math.hypot(a.x - n.x, a.y - n.y);
+            // suspicion builds before they act: faster up close, faster if they hold a grudge against this animal
+            n.sus = Math.min(1, (n.sus || 0) + (d < 110 ? .3 : .2) * (1 + .35 * (n.grudge[r] || 0)));
+            if(n.sus < 1){ if(!n.emo || n.emo.e !== "❓") this.emote(n.id, "❓", .7); continue; }
+            n.sus = 0; if(why === "tattle") this.callStaff(n, r); else this.chase(n, r, why); break; }
           if(n.grudge[r] > 0 && !n.emo && Math.random() < .3) this.emote(n.id, "🤨", 1.5); }
+        if(!saw) n.sus = Math.max(0, (n.sus || 0) - .15);
         n.rt -= .25;
         if(n.rt <= 0 && n.st !== "sit"){ n.rt = 1.5;
           const o = this.objs.find(o => o.own === n.id && !o.holder && !o.worn && !o.gone && !o.stay && !o.fixed && Math.hypot(o.x - o.home[0], o.y - o.home[1]) > 70 && Math.hypot(o.x - n.x, o.y - n.y) < 320);
@@ -1032,8 +1115,11 @@ function homeScreen(){
     <button class="btn" data-a="make">New game · you're Ginger 🦒</button>
     <div class="row"><input id="cd" placeholder="CODE" maxlength="4" autocomplete="off"><button class="btn alt" data-a="join">Join · Harriet 🦛</button></div>
     <p class="err"></p></div>
+    <button class="btn ghost" data-a="sound">🔊 Sound settings</button><div class="sheet hidden"></div>
     <div class="card how"><b>How to play</b><p>Work through the lodge's to-do list of pranks together. Ginger stretches her neck to reach high things. Harriet charges, pushes heavy stuff and makes huge splashes. Get caught holding something and they'll chase you off and take it back.</p></div></div>`);
   app.append(w);
+  w.querySelector("[data-a=sound]").onclick = () => { ac(); const sh = w.querySelector(".sheet"); sh.innerHTML = `<div class="sheet-in"><h2>Sound settings</h2><div class="sndpanel">${soundPanelHTML()}</div><button class="btn" data-x>Done</button></div>`;
+    sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden"); bindSoundPanel(sh); };
   const nm = w.querySelector("#nm"), cd = w.querySelector("#cd"), err = w.querySelector(".err");
   nm.value = localStorage.getItem("safari_name") || "";
   const qs = new URLSearchParams(location.search).get("g"); if(qs) cd.value = qs.toUpperCase();
@@ -1167,10 +1253,9 @@ class Play {
       this.events(this.world.events);
       this.wsend = (this.wsend || 0) + dt; if(this.wsend > .25){ this.wsend = 0; api.update(rid(S.code) + "_w", this.world.snap()).catch(() => {}); }
       const done = Object.assign({}, (R.done || {})[this.ai], this.world.done);
-      if(this.A.pranks.every(p => done[p.id]) && !this.advancing){ this.advancing = true; this.banner(`${this.A.name} wrecked!`, this.ai < AREAS.length - 1 ? `Next: ${AREAS[this.ai + 1].name}` : "");
-        setTimeout(() => { if(!this.dead) api.update(rid(S.code), this.ai >= AREAS.length - 1 ? {phase: "won"} : {area: this.ai + 1}).catch(() => { this.advancing = false; }); }, 4500); }
+      if(this.A.pranks.every(p => done[p.id]) && !this.advancing){ this.advancing = true; setTimeout(() => this.finishCard(), 2500); }
     }
-    if(!this.host){ const done = (R.done || {})[this.ai] || {}; if(this.A.pranks.every(p => done[p.id]) && !this.advancing){ this.advancing = true; this.banner(`${this.A.name} wrecked!`, this.ai < AREAS.length - 1 ? `Next: ${AREAS[this.ai + 1].name}` : ""); } }
+    if(!this.host){ const done = (R.done || {})[this.ai] || {}; if(this.A.pranks.every(p => done[p.id]) && !this.advancing){ this.advancing = true; setTimeout(() => this.finishCard(), 2500); } }
     this.sendT += dt; if(this.sendT > .25){ this.sendT = 0; const a = this.a; api.update(rid(S.code) + "_p_" + this.me, {x: Math.round(a.x), y: Math.round(a.y), d: Math.round(a.d * 100) / 100, s: a.s, c: a.c, w: a.w, mv: a.mv, sit: a.sit || 0, ts: Date.now(), area: this.ai}).catch(() => {}); }
     this.draw();
   }
@@ -1269,11 +1354,20 @@ class Play {
     sh.innerHTML = `<div class="sheet-in"><h2>${esc(this.A.name)}</h2><p class="muted">🦒 Ginger · 🦛 Harriet · 🦒🦛 both · ✋ either</p><ul>${this.A.pranks.map(p => `<li class="${done[p.id] ? "done" : ""}"><span class="who">${ICON[p.who]}</span><span>${esc(p.text)}</span></li>`).join("")}</ul><button class="btn" data-x>Back to mischief</button></div>`;
     sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden");
   }
+  finishCard(){
+    if(this.dead || this.w.querySelector(".done-card")) return; SFX.big(); const ai = this.ai, last = ai >= AREAS.length - 1, g = galleryHTML(ai);
+    const c = el(`<div class="done-card"><div class="card center"><h2>${esc(this.A.name)} wrecked!</h2><p>All ${this.A.pranks.length} pranks done.</p>
+      ${g || `<p class="muted">No photobombs in this area.</p>`}
+      <button class="btn" data-n>${last ? "See the ending" : "Next: " + esc(AREAS[ai + 1].name)}</button></div></div>`);
+    c.querySelector("[data-n]").onclick = e => { e.target.disabled = true; e.target.textContent = "Loading…";
+      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(last) cur.phase = "won"; else cur.area = ai + 1; }).catch(() => { e.target.disabled = false; e.target.textContent = "Try again"; }); };
+    this.w.append(c);
+  }
   menu(){
     const sh = this.w.querySelector(".sheet"); this.sheetMode = "menu";
-    sh.innerHTML = `<div class="sheet-in"><h2>Paused?</h2><p class="muted">Game code <b>${S.code}</b>. Progress saves automatically. Rejoin anytime with this code and your name.</p><h3>Sound</h3><div class="snd">${SND_CATS.map(([k, n]) => `<label><input type="checkbox" data-snd="${k}" ${sndOn(k) ? "checked" : ""}> ${n}</label>`).join("")}</div><button class="btn" data-x>Keep playing</button><button class="btn ghost" data-l>Leave game</button></div>`;
+    sh.innerHTML = `<div class="sheet-in"><h2>Paused?</h2><p class="muted">Game code <b>${S.code}</b>. Progress saves automatically. Rejoin anytime with this code and your name.</p><div class="sndpanel">${soundPanelHTML()}</div><button class="btn" data-x>Keep playing</button><button class="btn ghost" data-l>Leave game</button></div>`;
     sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden"); sh.querySelector("[data-l]").onclick = leave;
-    sh.querySelectorAll("[data-snd]").forEach(b => b.onchange = () => { setSnd(b.dataset.snd, b.checked); if(b.dataset.snd === "music" && b.checked) MUSIC.play(this.ai % TUNES.length); if(b.dataset.snd === "amb" && b.checked) AMB.play(this.A.amb); });
+    bindSoundPanel(sh, (k, on) => { if(k === "music" && on) MUSIC.play(this.ai % TUNES.length); if(k === "amb" && on) AMB.play(this.A.amb); });
   }
 }
 
