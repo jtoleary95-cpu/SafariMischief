@@ -66,6 +66,23 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .done-card{position:fixed;inset:0;background:rgba(46,42,58,.6);display:flex;align-items:center;justify-content:center;z-index:6;padding:16px}
 .done-card .card{max-width:480px;width:100%;max-height:88%;overflow:auto}
 .sus{position:absolute}
+
+.jeep{display:flex;flex-direction:column;height:100dvh;background:#5D7A3A;color:#fff;touch-action:none;-webkit-user-select:none;user-select:none}
+.jhud{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#2E2A3A}.jhud span{flex:1;text-align:right;font-weight:700}
+.jcv{flex:1;width:100%;display:block}
+.jmsg{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:#2E2A3A;color:#FFC93C;font:900 22px var(--body,system-ui);padding:10px 16px;border-radius:14px;opacity:0;pointer-events:none;transition:opacity .2s;text-align:center;max-width:86%}
+.jmsg.show{opacity:1}
+.jctl{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 12px calc(14px + env(safe-area-inset-bottom))}
+.jtip{font-weight:700;opacity:.85;text-align:center;font-size:14px;padding:4px 12px}
+.pad.gas,.pad.brake{width:100%;max-width:420px;height:96px;font-size:30px;font-weight:900;border-radius:22px;border:4px solid #2E2A3A}
+.pad.gas{background:#66BB6A}.pad.brake{background:#EF5350;color:#fff}.pad.on{transform:scale(.97);filter:brightness(.85)}
+.harriet{background:#3E3A4E}
+.mirror{position:relative;margin:14px auto 4px;width:300px;max-width:88%;border:6px solid #263238;border-radius:16px;overflow:hidden;box-shadow:0 4px 0 #111}
+.mirror canvas{display:block;width:100%}.mirror .crack{position:absolute;inset:0;width:100%;height:100%}
+.mirror.danger{border-color:#E53935;animation:mblink .4s infinite alternate}@keyframes mblink{to{border-color:#263238}}
+.wheelbox{flex:1;display:flex;align-items:center;justify-content:center;touch-action:none}
+.wheel{width:min(68vw,300px);aspect-ratio:1;border-radius:50%;border:22px solid #212121;box-shadow:inset 0 0 0 6px #424242,0 6px 0 #111;position:relative;display:flex;align-items:center;justify-content:center}
+.wheel .spoke{position:absolute;left:0;right:0;top:50%;height:22px;margin-top:-11px;background:#212121}.wheel .hub{width:70px;height:70px;border-radius:50%;background:#424242;display:flex;align-items:center;justify-content:center;font-size:34px;z-index:1}
 </style></head><body><div id="app"></div>
 <script>
 /* ===== FIREBASE CONFIG (same project as Deep Salvo and Sovereign) ===== */
@@ -585,6 +602,464 @@ area({
   ],
 });
 
+/* ===== Area 4: Mud Spa ===== */
+Object.assign(LOOKS, {spa: {shirt: "#80CBC4", hat: "none", skin: "#C68642"}, robe: {shirt: "#FFFFFF", hat: "none", skin: "#FFDBAC"}, robe2: {shirt: "#F8BBD0", hat: "none", skin: "#8D5524"}});
+area({
+  name: "Mud Spa", ground: "#B5D99C", amb: "spa",
+  start: {G: [420, 1110], H: [490, 1110]}, entrance: [450, 1140],
+  pen: {r: [730, 1000, 140, 140], gate: "gate"},
+  walls: [RC(60, 60, 780, 18), RC(60, 60, 18, 700), RC(60, 742, 330, 18), RC(510, 742, 330, 18), RC(822, 60, 18, 700),
+    RC(560, 78, 18, 150), RC(560, 300, 262, 18), RC(722, 1000, 8, 140), RC(730, 992, 140, 8)],
+  floors: [{r: [78, 78, 744, 664], c: "#E0F2F1"}, {r: [578, 78, 244, 222], c: "#CFD8DC"}, {r: [390, 760, 120, 440], c: PAL.path}, {r: [100, 800, 280, 180], c: "#D7CCC8"}],
+  trees: [[110, 1040, 36], [840, 860, 32], [60, 860, 30]],
+  zones: {steam: [578, 78, 244, 222], steamDoor: [530, 225, 70, 80], bath1: [110, 120, 150, 110], bath2: [300, 120, 150, 110], hottub: [140, 470, 170, 120],
+    shelf: [600, 500, 120, 60], napzone: [620, 600, 120, 90], lobby: [100, 800, 280, 180], spadoor: [390, 720, 120, 70], silence: [380, 300, 140, 90]},
+  deco: [
+    {r: [110, 120, 150, 110], c: "#6D4C41", top: "#795548", label: "MUD BATH"}, {r: [300, 120, 150, 110], c: "#6D4C41", top: "#795548", label: "MUD BATH"},
+    {r: [140, 470, 170, 120], c: "#4FC3F7", top: "#81D4FA", label: "HOT TUB"},
+    {r: [600, 470, 140, 26], c: "#A1887F", top: "#D7CCC8", label: "OILS", solid: true},
+    {r: [620, 610, 120, 60], c: "#FFFFFF", top: "#E0E0E0", label: "MASSAGE", solid: true},
+    {r: [380, 300, 140, 26], c: "#ECEFF1", top: "#FFFFFF", label: "SILENCE PLEASE"},
+    {r: [600, 110, 200, 40], c: "#B0BEC5", label: "STEAM ROOM"},
+  ],
+  fix: [
+    {id: "speaker", e: "🔊", x: 470, y: 90, r: 14, high: true, size: 26, label: "spa music"},
+    {id: "oils", e: "🧴", x: 670, y: 480, r: 16, high: true, size: 26, label: "oil bottles"},
+    {id: "steamdial", e: "🌡️", x: 700, y: 100, r: 14, high: true, size: 26, label: "steam dial"},
+    {id: "pockets", e: "🧥", x: 760, y: 420, r: 18, size: 28, label: "robe hooks"},
+    {id: "valve", e: "🚰", x: 90, y: 700, r: 16, size: 28, label: "mud valve"},
+    {id: "gate", e: "🚪", x: 715, y: 1070, r: 18, size: 32, c: "#D7CCC8"},
+  ],
+  objs: [
+    {id: "cucumber", e: "🥒", on: "sleeper", snatch: true, own: "sleeper"},
+    {id: "pail", e: "🪣", x: 200, y: 260, own: "attend"},
+    {id: "icecart", e: "🧊", x: 760, y: 360, heavy: true, r: 24, c: "#B3E5FC"},
+    {id: "mudball", e: "🟤", x: 380, y: 250},
+    {id: "robe", e: "🥼", x: 790, y: 470, wear: true, wearBy: "G", own: "attend"},
+    {id: "bench", e: "🪑", x: 470, y: 420, heavy: true, r: 22, c: "#BCAAA4"},
+  ],
+  npcs: [
+    {id: "attend", look: "spa", x: 360, y: 400, beh: "route", route: [[360, 400, 2], [500, 250, 1.5], [200, 300, 1.5], [450, 620, 2]], staff: true, name: "Attendant"},
+    {id: "therap", look: "spa", x: 690, y: 690, beh: "wander", rad: 70, staff: true, name: "Therapist"},
+    {id: "sleeper", look: "robe", x: 680, y: 640, beh: "sit", face: 0, sleepy: true},
+    {id: "soaker", look: "robe2", x: 185, y: 175, beh: "sit", face: Math.PI / 2},
+    {id: "tub1", look: "guest1", x: 190, y: 530, beh: "sit", face: 0}, {id: "tub2", look: "guest2", x: 260, y: 530, beh: "sit", face: Math.PI},
+    {id: "lob1", look: "tourist1", x: 200, y: 880, beh: "wander", rad: 60}, {id: "lob2", look: "tourist3", x: 300, y: 900, beh: "wander", rad: 50},
+  ],
+  pranks: [
+    {id: "cukes", text: "Steal the cucumbers off a sleeping guest's eyes", who: "G", check: W => W.holds("G", "cucumber")},
+    {id: "bath", text: "Take over a mud bath and refuse to leave", who: "H", check: W => W.sitting("H") && W.inZ("H", "bath2"),
+      after: W => W.script("attend", [{go: [380, 260]}, {say: "Ma'am, that bath is reserved!", s: "hey"}, {wait: 2}, {say: "…fine. FINE.", s: "grumble"}, {emote: "😤", t: 2}])},
+    {id: "drums", text: "Swap the calm spa music for jungle drums", who: "G", check: W => W.used("speaker"),
+      after: W => { W.set("drums"); ["tub1", "tub2", "lob1"].forEach((s, i) => W.script(s, [{wait: i * .6}, {say: ["Is that… drums?", "So much for relaxing.", "Ooh, I like this!"][i], s: i === 2 ? "laugh" : "grumble"}, {st: W.npc(s).beh}])); }},
+    {id: "oil", text: "Fill the massage oil bottles with mud: Harriet brings it, Ginger reaches the shelf", who: "B", check: W => W.inZ("pail", "shelf") && W.used("oils"), keep: ["pail"],
+      after: W => W.script("therap", [{wait: 3}, {go: [670, 560]}, {say: "Why is the lavender oil… brown?", s: "gasp"}, {emote: "🤢", t: 2}])},
+    {id: "ice", text: "Dump the ice cart into the hot tub", who: "H", big: true, check: W => W.inZ("icecart", "hottub"), keep: ["icecart"],
+      after: W => { W.fx("splash", 225, 530); ["tub1", "tub2"].forEach((s, i) => W.script(s, [{say: i ? "MY TOES!" : "COLD! COLD! COLD!", s: "scream"}, {go: [225 + (i ? 90 : -90), 640], run: 1}, {spin: 1, wait: 1.2}, {emote: "🥶", t: 3}, {wait: 2}, {go: W.npc(s).home}, {st: "sit"}])); }},
+    {id: "mask", text: "Give the sleeping guest a surprise mud mask", who: "H", check: W => W.inZ("mudball", "napzone") && W.held("H") !== "mudball", keep: ["mudball"],
+      after: W => W.script("sleeper", [{wait: 2}, {say: "Mmm… so refreshing…", s: "laugh"}, {wait: 3}, {say: "Wait. Why is it lumpy?", s: "gasp"}, {st: "sit"}])},
+    {id: "steam", text: "Crank the steam room to max", who: "G", check: W => W.used("steamdial"),
+      after: W => { for(let i = 0; i < 6; i++) setTimeout(() => W.fx("poof", 600 + Math.random() * 200, 120 + Math.random() * 150), i * 400); }},
+    {id: "pockets", text: "Slip a cucumber into all five robe pockets", who: "G", check: W => W.uses("pockets") >= 5},
+    {id: "silence", text: "Bellow right under the SILENCE PLEASE sign", who: "H", check: W => W.ev("noise", e => e.who === "H", 2) && W.inZ("H", "silence"),
+      after: W => ["attend", "tub1", "tub2", "soaker"].forEach((s, i) => W.script(s, [{wait: i * .3}, {say: ["SHHHHH!", "Rude!", "I was meditating!", "Was that a foghorn?"][i], s: "hey"}, {emote: "🤫", t: 2}, {st: W.npc(s).beh}]))},
+    {id: "lockin", text: "Lock the therapist in the steam room: lure her in, block the door with the bench", who: "B", big: true, check: W => W.inZ("therap", "steam") && W.inZ("bench", "steamDoor"), keep: ["bench"],
+      after: W => { W.busy("therap"); W.script("therap", [{say: "Hello? The door's stuck!", s: "hey"}, {wait: 2}, {say: "It's SO HOT in here!", s: "scream"}, {emote: "🥵", t: 4}, {wait: 4}, {say: "…actually my skin feels amazing.", s: "laugh"}]); }},
+    {id: "robe", text: "Steal a fluffy robe and wear it around", who: "G", check: W => W.wearing("G", "robe")},
+    {id: "flood", text: "Flood the lobby with mud: Harriet opens the valve, Ginger sits in the doorway to prop it open", who: "B", big: true, check: W => W.used("valve") && W.sitting("G") && W.inZ("G", "spadoor"),
+      after: W => { W.set("flood"); W.fx("splash", 240, 880); ["lob1", "lob2", "attend"].forEach((s, i) => W.script(s, [{wait: i * .5}, {say: ["MY SHOES!", "Is this a mud bath too?", "NOT THE CARPET!"][i], s: i === 1 ? "laugh" : "scream"}, {go: [150 + i * 90, 1000], run: 1}, {emote: "😱", t: 2}, {wait: 2}, {st: W.npc(s).beh}])); }},
+  ],
+});
+
+/* ===== Area 5: Kids' Club ===== */
+Object.assign(LOOKS, {counselor: {shirt: "#FF7043", hat: "cap", skin: "#8D5524"}, kid1: {shirt: "#42A5F5", hat: "none", skin: "#FFDBAC", kid: true}, kid2: {shirt: "#AB47BC", hat: "none", skin: "#C68642", kid: true}, kid3: {shirt: "#66BB6A", hat: "cap", skin: "#F1C27D", kid: true}});
+area({
+  name: "Kids' Club", ground: PAL.grass, amb: "kids",
+  start: {G: [420, 1110], H: [490, 1110]}, entrance: [450, 1140],
+  pen: {r: [730, 1000, 140, 140], gate: "gate"},
+  walls: [RC(60, 60, 18, 900), RC(822, 60, 18, 900), RC(60, 60, 780, 18), RC(60, 942, 330, 18), RC(510, 942, 330, 18), RC(722, 1000, 8, 140), RC(730, 992, 140, 8)],
+  floors: [{r: [78, 78, 744, 864], c: "#C5E1A5"}, {r: [390, 960, 120, 240], c: PAL.path}, {r: [520, 560, 200, 160], c: "#FFE0B2"}],
+  trees: [[110, 1040, 36], [840, 1040, 32]],
+  zones: {castle: [120, 120, 220, 170], pump: [340, 200, 60, 60], pit: [520, 120, 200, 160], sandbox: [520, 560, 200, 160], gym: [120, 600, 180, 150], slideTop: [620, 360, 70, 60], slideEnd: [700, 440, 80, 70],
+    out: [390, 960, 120, 240], story: [300, 760, 160, 120], cage: [740, 820, 70, 70]},
+  deco: [
+    {r: [120, 120, 220, 170], c: "#F48FB1", top: "#F8BBD0", label: "BOUNCY CASTLE"}, {r: [520, 120, 200, 160], c: "#FFF59D", top: "#FFF176", label: "BALL PIT"},
+    {r: [120, 600, 180, 150], c: "#90A4AE", top: "#B0BEC5", label: "JUNGLE GYM"}, {r: [620, 360, 160, 40], c: "#4DD0E1", label: "SLIDE"},
+    {r: [740, 820, 70, 70], c: "#BCAAA4", label: "🐹", solid: true},
+  ],
+  fix: [
+    {id: "pumpfix", e: "💨", x: 370, y: 230, r: 18, size: 28, label: "air pump"},
+    {id: "brushes", e: "🖌️", x: 450, y: 520, r: 14, size: 26, label: "face paint"},
+    {id: "cagelatch", e: "🔓", x: 730, y: 850, r: 12, high: true, size: 22, label: "cage latch"},
+    {id: "gymtop", e: "🔝", x: 210, y: 610, r: 16, high: true, size: 26, label: "top of the gym"},
+    {id: "pinata", e: "🪅", x: 450, y: 110, r: 16, high: true, size: 36, label: "piñata"},
+    {id: "pinlow", e: "🎊", x: 450, y: 175, r: 18, size: 22, bump: true, label: "piñata (pulled down)"},
+    {id: "pitedge", e: "🟡", x: 620, y: 290, r: 20, size: 22, bump: true, label: "ball pit"},
+    {id: "gate", e: "🚪", x: 715, y: 1070, r: 18, size: 32, c: "#D7CCC8"},
+  ],
+  objs: [
+    {id: "whistle", e: "📯", on: "couns", snatch: true, own: "couns"},
+    {id: "cookies", e: "🍪", x: 420, y: 680, own: "couns"},
+    {id: "bucket", e: "🪣", x: 760, y: 760},
+    {id: "book", e: "📕", x: 380, y: 800, own: "couns"}, {id: "menu", e: "📜", x: 120, y: 900},
+    {id: "paint", e: "🎨", x: 470, y: 540, own: "couns"},
+  ],
+  npcs: [
+    {id: "couns", look: "counselor", x: 450, y: 600, beh: "wander", rad: 80, staff: true, name: "Counselor"},
+    {id: "k1", look: "kid1", x: 220, y: 200, beh: "wander", rad: 60}, {id: "k2", look: "kid2", x: 600, y: 200, beh: "wander", rad: 50},
+    {id: "k3", look: "kid3", x: 600, y: 640, beh: "wander", rad: 50}, {id: "k4", look: "kid1", x: 380, y: 820, beh: "sit", face: 0},
+  ],
+  hooks: {tick(W, dt){
+    // the counselor dozes off in her chair now and then
+    const c = W.npc("couns"), ph = W.t % 50;
+    if(c && c.st !== "script" && c.st !== "chase"){ if(ph > 30 && c.st !== "sit"){ c.st = "sit"; c.x = 470; c.y = 840; W.say("couns", "Zzz…", 3); } else if(ph <= 30 && c.st === "sit"){ c.st = "wander"; W.emote("couns", "🥱", 2); } }
+    // kids follow whoever snorts or bellows near them, for a little while
+    for(const k of ["k1", "k2", "k3"]){ const n = W.npc(k); if(!n) continue;
+      const e = W.ev("noise", e => Math.hypot(e.x - n.x, e.y - n.y) < 150, .2); if(e) n.follow = {who: e.who, until: W.t + 15};
+      if(n.follow && W.t < n.follow.until && n.st !== "script"){ const a = W.P[n.follow.who]; if(a){ const i = ["k1", "k2", "k3"].indexOf(k), dx = a.x - n.x, dy = a.y - n.y + 40 + i * 34, d = Math.hypot(dx, dy); if(d > 30){ const sp = Math.min(d, 200 * (dt || .016)); n.x += dx / d * sp; n.y += dy / d * sp; n.dir = Math.atan2(dy, dx); } } }
+      else if(n.follow && W.t >= n.follow.until) n.follow = null; } }},
+  pranks: [
+    {id: "whistle", text: "Steal the counselor's whistle", who: "G", check: W => W.holds("G", "whistle")},
+    {id: "castle", text: "Sit on the bouncy castle's air pump", who: "H", big: true, check: W => W.sitting("H") && W.inZ("H", "pump"),
+      after: W => { W.set("castleDown"); ["k1", "k2"].forEach((s, i) => W.script(s, [{go: [200 + i * 60, 250], run: 1}, {say: i ? "It's sinking!" : "WHEEEE—oof!", s: "laugh"}, {spin: 1, wait: 1}, {go: [230 + i * 80, 330], run: 1}, {emote: "😵", t: 2}, {st: "wander"}]));
+        W.script("couns", [{wait: 1}, {say: "Who's sitting on the PUMP?!", s: "scream"}, {go: [330, 260], run: 1}, {wait: 2}]); }},
+    {id: "facepaint", text: "Face-paint the napping counselor: Ginger holds the brush, Harriet holds the paint", who: "B", check: W => W.used("brushes") && W.holds("H", "paint") && W.near("H", "couns", 90) && W.npc("couns").st === "sit",
+      after: W => W.script("couns", [{wait: 2}, {say: "Mmm, nice nap… why are the kids laughing?", s: "gasp"}, {emote: "🤡", t: 4}, {st: "wander"}])},
+    {id: "hamster", text: "Free the class guinea pig", who: "G", check: W => W.used("cagelatch"),
+      after: W => ["k3", "k4"].forEach((s, i) => W.script(s, [{say: i ? "Catch him!" : "PEANUT ESCAPED!", s: "scream"}, {go: [300 + i * 200, 500], run: 1}, {go: [500 - i * 200, 760], run: 1}, {st: W.npc(s).beh}]))},
+    {id: "cookies", text: "Hide the snack cookies on top of the jungle gym", who: "G", check: W => W.inZ("cookies", "gym") && W.held("G") !== "cookies" && W.used("gymtop"), keep: ["cookies"]},
+    {id: "sandbox", text: "Turn the sandbox into a mud pit", who: "H", check: W => W.inZ("bucket", "sandbox") && W.held("H") !== "bucket", keep: ["bucket"],
+      after: W => W.script("k3", [{say: "MUD CASTLE!", s: "laugh"}, {emote: "🤩", t: 3}, {wait: 2}])},
+    {id: "storybook", text: "Swap the storytime book for a restaurant menu", who: "G", check: W => W.inZ("menu", "story") && !W.inZ("book", "story") && W.held("G") !== "menu", keep: ["menu"],
+      after: W => W.script("couns", [{go: [380, 760]}, {say: "Once upon a time… soup of the day, tomato…", s: "gasp"}, {emote: "😳", t: 3}])},
+    {id: "ballpit", text: "Cannonball into the ball pit", who: "H", big: true, check: W => W.used("pitedge"),
+      after: W => { for(let i = 0; i < 8; i++) setTimeout(() => W.fx("poof", 540 + Math.random() * 160, 140 + Math.random() * 120), i * 150); W.script("k2", [{say: "BALL STORM!", s: "laugh"}, {spin: 1, wait: 1.5}, {st: "wander"}]); }},
+    {id: "conga", text: "Lead the kids in a conga line out the door (snort or bellow so they follow)", who: "B", big: true, check: W => ["k1", "k2", "k3"].every(k => W.npc(k).follow && W.inZ(k, "out")),
+      after: W => { ["k1", "k2", "k3", "k4"].forEach((s, i) => W.script(s, [{go: [450, 1100 + i * 20], run: 1}, {say: ["Conga!", "Da-da-da-da-da", "HEY!", "Wait for me!"][i], s: "laugh"}, {wait: 3}, {go: W.npc(s).home}, {st: W.npc(s).beh}]));
+        W.script("couns", [{say: "WHERE IS EVERYONE GOING?!", s: "scream"}, {go: [450, 1050], run: 1}, {wait: 2}]); }},
+    {id: "slide", text: "Get the counselor stuck on the slide: Ginger lures her up, Harriet blocks the bottom", who: "B", check: W => W.inZ("couns", "slideTop") && W.sitting("H") && W.inZ("H", "slideEnd"),
+      after: W => W.script("couns", [{say: "Um. Can you move, hippo?", s: "hey"}, {wait: 2}, {say: "I'm STUCK!", s: "scream"}, {emote: "😩", t: 3}])},
+    {id: "spots", text: "Give Harriet giraffe spots with the face paint", who: "B", check: W => W.uses("brushes") >= 3 && W.ev("use", e => e.who === "G" && e.obj === "brushes", 1) && W.near("G", "H", 80),
+      after: W => W.script("k4", [{say: "A GIRAFFE-HIPPO!", s: "laugh"}, {emote: "🤯", t: 3}, {st: "sit"}])},
+    {id: "pinata", text: "Bust the piñata: Ginger pulls it down, Harriet smashes it", who: "B", big: true, check: W => W.used("pinata") && W.used("pinlow"),
+      after: W => { for(let i = 0; i < 10; i++) setTimeout(() => W.fx("poof", 420 + Math.random() * 60, 140 + Math.random() * 60), i * 120); ["k1", "k2", "k3", "k4"].forEach((s, i) => W.script(s, [{go: [420 + i * 20, 160], run: 1}, {say: "CANDY!!!", s: "laugh"}, {wait: 3}, {st: W.npc(s).beh}])); }},
+  ],
+});
+
+/* ===== Area 6: Campground ===== */
+Object.assign(LOOKS, {camper1: {shirt: "#8BC34A", hat: "sun", skin: "#FFDBAC"}, camper2: {shirt: "#FF8A65", hat: "none", skin: "#8D5524"}, leader: {shirt: "#795548", hat: "sun", skin: "#C68642"}});
+area({
+  name: "Campground", ground: "#A5D66F", amb: "camp", night: true,
+  start: {G: [420, 1110], H: [490, 1110]}, entrance: [450, 1140],
+  pen: {r: [730, 1000, 140, 140], gate: "gate"},
+  walls: [RC(722, 1000, 8, 140), RC(730, 992, 140, 8)],
+  water: [[560, 80, 300, 260, "water"]],
+  floors: [{r: [390, 760, 120, 440], c: PAL.path}, {r: [100, 820, 220, 140], c: "#6D4C41"}],
+  trees: [[80, 120, 40], [80, 400, 38], [500, 60, 36], [860, 520, 34], [860, 720, 32], [120, 680, 36], [300, 1000, 34]],
+  zones: {lake: [560, 80, 300, 260], shore: [520, 300, 140, 90], fire: [330, 470, 140, 120], dark: [140, 300, 140, 120], peek: [300, 330, 110, 90],
+    flag: [700, 600, 60, 60], mudtrail: [100, 820, 220, 140], spraybox: [180, 620, 70, 60], sbag: [600, 440, 90, 60], fireside: [300, 440, 200, 180]},
+  deco: [
+    {r: [140, 160, 120, 90], c: "#FFB74D", top: "#FFCC80", label: "TENT", solid: true}, {r: [300, 200, 120, 90], c: "#4DB6AC", top: "#80CBC4", label: "TENT", solid: true},
+    {r: [370, 510, 60, 40], c: "#BF360C", top: "#FF7043", label: "🔥", solid: true},
+    {r: [160, 610, 110, 26], c: "#8D6E63", top: "#A1887F", label: "SUPPLIES", solid: true},
+    {r: [722, 560, 16, 120], c: "#9E9E9E", label: ""}, {r: [100, 790, 220, 26], c: "#ECEFF1", label: "→ LAKE TRAIL"},
+  ],
+  fix: [
+    {id: "pole", e: "⛺", x: 200, y: 160, r: 16, high: true, size: 30, label: "tent pole"},
+    {id: "flagtop", e: "🚩", x: 730, y: 560, r: 16, high: true, size: 30, label: "flagpole top"},
+    {id: "rope1", e: "🪢", x: 270, y: 210, r: 14, size: 24, label: "tent rope"}, {id: "rope2", e: "🪢", x: 290, y: 280, r: 14, size: 24, label: "tent rope"},
+    {id: "frogs", e: "🐸", x: 560, y: 400, r: 18, size: 28, label: "frog pond"},
+    {id: "gate", e: "🚪", x: 715, y: 1070, r: 18, size: 32, c: "#D7CCC8"},
+  ],
+  objs: [
+    {id: "marsh", e: "🍡", x: 440, y: 600, own: "leader"},
+    {id: "undies", e: "🩲", x: 340, y: 300},
+    {id: "spray", e: "🧴", x: 200, y: 600, high: true, own: "leader"}, {id: "honey", e: "🍯", x: 760, y: 820},
+    {id: "sign", e: "🪧", x: 470, y: 760, high: true, own: "leader"},
+    {id: "guitar", e: "🎸", x: 300, y: 560, own: "c2"},
+    {id: "choc", e: "🍫", x: 480, y: 620, own: "leader"},
+    {id: "canoe", e: "🛶", x: 560, y: 460, heavy: true, r: 26, c: "#A1887F"},
+  ],
+  npcs: [
+    {id: "leader", look: "leader", x: 400, y: 620, beh: "wander", rad: 70, staff: true, name: "Camp leader"},
+    {id: "teller", look: "camper1", x: 360, y: 460, beh: "sit", face: Math.PI / 2, name: "Storyteller"},
+    {id: "c2", look: "camper2", x: 330, y: 580, beh: "sit", face: -Math.PI / 2},
+    {id: "sleeper", look: "camper1", x: 600, y: 360, beh: "sit", face: 0, name: "Sleepy camper"},
+    {id: "hiker", look: "camper2", x: 440, y: 700, beh: "wander", rad: 50},
+  ],
+  pranks: [
+    {id: "tent", text: "Pull a tent's center pole so it collapses", who: "G", check: W => W.used("pole"),
+      after: W => W.script("hiker", [{say: "My tent! It ate my tent!", s: "scream"}, {go: [200, 280], run: 1}, {emote: "😩", t: 3}, {st: "wander"}])},
+    {id: "roll", text: "Roll the sleeping camper into the lake", who: "H", big: true, check: W => W.ev("bump", e => e.obj === "sleeper", 2),
+      after: W => { W.busy("sleeper"); W.script("sleeper", [{go: [660, 250], run: 1}, {say: "SPLASH! COLD! WHERE AM I?!", s: "scream"}, {emote: "🥶", t: 3}, {wait: 2}, {go: [600, 360]}, {say: "…I'm sleeping inside tonight.", s: "grumble"}, {st: "sit"}]); W.fx("splash", 660, 250); }},
+    {id: "marsh", text: "Steal the marshmallows from the campfire", who: "B", check: W => W.holds("G", "marsh") || W.holds("H", "marsh")},
+    {id: "undies", text: "Hang someone's underwear on the flagpole", who: "G", check: W => W.inZ("undies", "flag") && W.used("flagtop") && W.held("G") !== "undies", keep: ["undies"],
+      after: W => W.script("leader", [{go: [700, 680]}, {say: "Whose are THOSE?!", s: "gasp"}, {emote: "😳", t: 3}, {st: "wander"}])},
+    {id: "fire", text: "Put out the campfire with a giant splash from the lake", who: "H", check: W => W.ev("splash", e => e.who === "H" && e.y > 280, 2) && W.near("H", "teller", 330),
+      after: W => { W.fx("poof", 400, 520); W.script("c2", [{say: "Hey! The fire!", s: "hey"}, {emote: "💨", t: 2}, {st: "sit"}]); }},
+    {id: "ghost", text: "Scare the ghost-story teller: Harriet bellows from the dark while Ginger peeks over the tent", who: "B", big: true, check: W => W.ev("noise", e => e.who === "H", 1) && W.inZ("H", "dark") && W.inZ("G", "peek"),
+      after: W => { ["teller", "c2"].forEach((s, i) => W.script(s, [{say: i ? "IT'S THE LAKE MONSTER!" : "…and then the monster went RAAAAH—AAAAAH!", s: "scream"}, {go: [450 + i * 60, 900], run: 1}, {emote: "👻", t: 3}, {wait: 3}, {go: W.npc(s).home}, {st: "sit"}])); }},
+    {id: "honey", text: "Swap the bug spray for honey so the bees chase the campers", who: "B", big: true, check: W => W.inZ("honey", "spraybox") && !W.inZ("spray", "spraybox") && W.held("H") !== "honey" && W.held("G") !== "honey", keep: ["honey"],
+      after: W => { ["hiker", "c2", "leader"].forEach((s, i) => W.script(s, [{wait: 2 + i}, {say: ["Bug spray time!", "Why does it smell like… BEES!", "RUN!!!"][i], s: i ? "scream" : "laugh"}, {go: [200 + i * 150, 900], run: 1}, {go: [700 - i * 100, 400], run: 1}, {emote: "🐝", t: 3}, {go: W.npc(s).home}, {st: W.npc(s).beh}])); }},
+    {id: "ropes", text: "Tie two tents' ropes together (both pull at once)", who: "B", check: W => W.ev("use", e => e.who === "G" && e.obj === "rope1", 2) && W.ev("use", e => e.who === "H" && e.obj === "rope2", 2),
+      after: W => W.script("hiker", [{wait: 2}, {go: [280, 320]}, {say: "Why is my tent hugging that tent?", s: "gasp"}, {st: "wander"}])},
+    {id: "trail", text: "Move the LAKE TRAIL sign so the night hike walks into the mud", who: "G", big: true, check: W => W.inZ("sign", "mudtrail") && W.held("G") !== "sign", keep: ["sign"],
+      after: W => ["hiker", "leader"].forEach((s, i) => W.script(s, [{wait: i}, {say: i ? "Follow me, this way!" : "Night hike!", s: "laugh"}, {go: [200 + i * 40, 880]}, {say: "SQUELCH. Ugh!", s: "scream"}, {emote: "🤢", t: 3}, {go: W.npc(s).home}, {st: "wander"}]))},
+    {id: "guitar", text: "Sit on the guitar in the middle of the singalong", who: "H", check: W => W.sitting("H") && W.near("H", "guitar", 45),
+      after: W => W.script("c2", [{say: "MY GUITAR!", s: "scream"}, {emote: "🎸💥", t: 3}, {st: "sit"}])},
+    {id: "choc", text: "Hide the chocolate in a sleeping bag", who: "G", check: W => W.inZ("choc", "sbag") && W.held("G") !== "choc", keep: ["choc"]},
+    {id: "frogs", text: "Fill the canoe with pond frogs and slide it up to the campfire", who: "B", check: W => W.uses("frogs") >= 3 && W.inZ("canoe", "fireside"),
+      after: W => { ["teller", "c2"].forEach((s, i) => W.script(s, [{wait: i * .5}, {say: i ? "THEY'RE IN MY HAIR!" : "Ribbit?", s: i ? "scream" : "gasp"}, {go: [380 + i * 80, 760], run: 1}, {wait: 2}, {go: W.npc(s).home}, {st: "sit"}])); }},
+  ],
+});
+
+/* ===== Area 7: Jeep Depot ===== */
+Object.assign(LOOKS, {guide: {shirt: "#827717", hat: "sun", skin: "#8D5524"}, mech: {shirt: "#455A64", hat: "cap", skin: "#FFDBAC"}});
+area({
+  name: "Jeep Depot", ground: "#B7D77A", amb: "jeeps",
+  start: {G: [420, 1110], H: [490, 1110]}, entrance: [450, 1140],
+  pen: {r: [730, 1000, 140, 140], gate: "gate"},
+  walls: [RC(722, 1000, 8, 140), RC(730, 992, 140, 8), RC(60, 60, 260, 18), RC(60, 60, 18, 240), RC(302, 60, 18, 240)],
+  water: [[560, 640, 200, 150, "mud"]],
+  floors: [{r: [78, 78, 224, 222], c: "#CFD8DC"}, {r: [340, 80, 520, 520], c: "#D7CCC8"}, {r: [390, 820, 120, 380], c: PAL.path}],
+  trees: [[110, 760, 36], [860, 900, 32], [100, 1000, 34]],
+  zones: {garage: [78, 78, 224, 222], mudpit: [560, 640, 200, 150], mapboard: [380, 100, 90, 60], dash: [600, 120, 90, 60], tirespot: [440, 380, 60, 60],
+    backseat: [640, 320, 120, 80], drum: [130, 380, 70, 70], washjeep: [340, 480, 120, 90], wash: [300, 440, 220, 160]},
+  deco: [{r: [380, 100, 90, 26], c: "#5D4037", label: "TOUR MAP"}, {r: [130, 380, 70, 70], c: "#37474F", label: "OIL", solid: true},
+    {r: [300, 440, 220, 26], c: "#81D4FA", label: "JEEP WASH"}, {r: [200, 560, 120, 26], c: "#ECEFF1", label: "⚠ LIONS AHEAD"}],
+  fix: [
+    {id: "horns", e: "📯", x: 690, y: 260, r: 18, size: 26, label: "jeep horns"},
+    {id: "lionsign", e: "🦁", x: 260, y: 560, r: 16, high: true, size: 30, label: "sign"},
+    {id: "hose", e: "🚿", x: 330, y: 470, r: 14, high: true, size: 26, label: "hose"}, {id: "tap", e: "🚰", x: 500, y: 600, r: 14, size: 26, label: "tap"},
+    {id: "gate", e: "🚪", x: 715, y: 1070, r: 18, size: 32, c: "#D7CCC8"},
+  ],
+  objs: [
+    {id: "binos", e: "🔭", on: "guide", snatch: true, own: "guide"},
+    {id: "jeep1", e: "🚙", x: 500, y: 700, heavy: true, r: 30, c: "#AED581"},
+    {id: "map", e: "🗺️", x: 420, y: 125, high: true, own: "guide"}, {id: "oldmap", e: "📜", x: 230, y: 900},
+    {id: "mega", e: "📣", x: 700, y: 480, own: "guide"},
+    {id: "mudpail", e: "🪣", x: 600, y: 860},
+    {id: "jkeys", e: "🔑", x: 120, y: 120, high: true, own: "mech"},
+  ],
+  npcs: [
+    {id: "guide", look: "guide", x: 520, y: 300, beh: "route", route: [[520, 300, 2], [420, 520, 3], [640, 380, 2], [480, 160, 2]], staff: true, name: "Guide"},
+    {id: "mech", look: "mech", x: 190, y: 200, beh: "wander", rad: 70, staff: true, name: "Mechanic"},
+    ...["tA", "tB", "tC", "tD", "tE"].map((id, i) => ({id, look: ["tourist1", "tourist2", "tourist3", "guest1", "guest2"][i], x: 160 + i * 140, y: 940 - (i % 2) * 120, beh: "photo", face: -Math.PI / 2, every: 3 + i * .4, name: "Tourist"})),
+  ],
+  pranks: [
+    {id: "binos", text: "Steal the guide's binoculars", who: "G", check: W => W.holds("G", "binos")},
+    {id: "mudjeep", text: "Push a jeep into the mud pit", who: "H", big: true, check: W => W.inZ("jeep1", "mudpit"), keep: ["jeep1"],
+      after: W => W.script("mech", [{go: [520, 600], run: 1}, {say: "NOT THE NEW ONE!", s: "scream"}, {wait: 1.5}, {say: "That'll take all week to get out…", s: "grumble"}, {emote: "😫", t: 3}, {st: "wander"}])},
+    {id: "map", text: "Swap the tour map so the jeep drives in circles", who: "G", big: true, check: W => W.inZ("oldmap", "mapboard") && !W.inZ("map", "mapboard") && W.held("G") !== "oldmap", keep: ["oldmap"],
+      after: W => W.script("guide", [{go: [420, 160]}, {say: "Right, today's route…", s: "laugh"}, {go: [600, 300]}, {go: [700, 450]}, {go: [600, 300]}, {say: "Didn't we pass that tree already?", s: "gasp"}, {go: [700, 450]}, {emote: "😵‍💫", t: 3}])},
+    {id: "photos", text: "Photobomb five tourists' pictures", who: "B", check: W => ["tA", "tB", "tC", "tD", "tE"].every(id => (W.cnt["photo2_" + id] || 0) >= 1)},
+    {id: "tire", text: "Sit on a jeep tire until it goes flat", who: "H", check: W => W.sitting("H") && W.inZ("H", "tirespot"),
+      after: W => W.script("mech", [{wait: 2}, {say: "PSSSSHHH… was that a tire?", s: "gasp"}, {st: "wander"}])},
+    {id: "ride", text: "Sneak into a jeep and ride along on a tour (both sit in the back seat)", who: "B", big: true, check: W => W.both("backseat") && W.sitting("G") && W.sitting("H"),
+      after: W => W.script("guide", [{go: [700, 300]}, {say: "And on your left, the majestic… why is there a hippo in my jeep?", s: "gasp"}, {emote: "😳", t: 3}, {wait: 2}, {say: "…tour cancelled.", s: "grumble"}])},
+    {id: "horns", text: "Honk every horn at once while Harriet blocks the mechanic", who: "B", check: W => W.uses("horns") >= 3 && W.near("H", "mech", 90),
+      after: W => ["tA", "tB", "tC"].forEach((s, i) => W.script(s, [{say: "HONK?!", s: "gasp"}, {emote: "🙉", t: 2}, {st: "photo"}]))},
+    {id: "mega", text: "Bellow into the guide's megaphone", who: "H", check: W => W.holds("H", "mega") && W.ev("noise", e => e.who === "H", 1),
+      after: W => ["guide", "tA", "tD"].forEach((s, i) => W.script(s, [{say: ["MY EARS!", "Was that a lion?!", "Best tour ever."][i], s: i === 2 ? "laugh" : "scream"}, {emote: "🙉", t: 2}, {st: W.npc(s).beh}]))},
+    {id: "mudbath", text: "Give the freshly washed jeep a mud bath", who: "H", check: W => W.inZ("mudpail", "washjeep") && W.held("H") !== "mudpail", keep: ["mudpail"]},
+    {id: "keys", text: "Drop the jeep keys in the oil drum", who: "G", check: W => W.inZ("jkeys", "drum") && W.held("G") !== "jkeys", keep: ["jkeys"],
+      after: W => W.script("mech", [{wait: 3}, {go: [130, 160]}, {say: "Where are my keys?!", s: "hey"}, {go: [165, 430]}, {say: "…in the OIL?!", s: "scream"}, {emote: "🛢️", t: 3}, {st: "wander"}])},
+    {id: "lions", text: "Turn the LIONS AHEAD sign around so the tour turns back", who: "G", big: true, check: W => W.used("lionsign"),
+      after: W => { W.script("guide", [{go: [260, 620]}, {say: "LIONS?! Everybody BACK!", s: "scream"}, {go: [420, 1100], run: 1}, {wait: 3}, {go: [520, 300]}]); ["tA", "tB", "tC", "tD", "tE"].forEach((s, i) => W.script(s, [{wait: .3 * i}, {go: [380 + i * 30, 1150], run: 1}, {wait: 4}, {go: W.npc(s).home}, {st: "photo"}])); }},
+    {id: "wash", text: "Rig the jeep wash: Ginger aims the hose, Harriet turns the tap as the guide walks by", who: "B", check: W => W.ev("use", e => e.who === "G" && e.obj === "hose", 4) && W.ev("use", e => e.who === "H" && e.obj === "tap", 4) && W.inZ("guide", "wash"),
+      after: W => { W.fx("splash", W.npc("guide").x, W.npc("guide").y); W.script("guide", [{say: "BLARGH! I'M CLEAN ENOUGH!", s: "scream"}, {spin: 1, wait: 1.2}, {emote: "💦", t: 3}]); }},
+  ],
+});
+
+/* ===== Area 8: Manager's Office ===== */
+Object.assign(LOOKS, {manager: {shirt: "#1A237E", hat: "none", skin: "#C68642"}, sec: {shirt: "#90A4AE", hat: "none", skin: "#FFDBAC"}});
+area({
+  name: "Manager's Office", ground: PAL.grass, amb: "office",
+  start: {G: [420, 1110], H: [490, 1110]}, entrance: [450, 1140],
+  pen: {r: [730, 1000, 140, 140], gate: "gate"},
+  walls: [RC(60, 60, 780, 18), RC(60, 60, 18, 760), RC(822, 60, 18, 760), RC(60, 802, 330, 18), RC(510, 802, 330, 18),
+    RC(78, 400, 300, 18), RC(460, 400, 362, 18), RC(722, 1000, 8, 140), RC(730, 992, 140, 8)],
+  floors: [{r: [78, 78, 744, 322], c: "#BCAAA4"}, {r: [78, 418, 744, 384], c: "#ECEFF1"}, {r: [390, 820, 120, 380], c: PAL.path}],
+  trees: [[110, 1000, 36], [840, 900, 32]],
+  zones: {office: [78, 78, 744, 322], odoor: [370, 380, 100, 70], hall: [78, 450, 744, 352], closet: [700, 470, 100, 90], desk: [330, 150, 160, 70],
+    eom: [600, 450, 90, 60], tank: [110, 120, 90, 80], podium: [300, 640, 110, 80]},
+  deco: [{r: [330, 150, 160, 60], c: "#6D4C41", top: "#8D6E63", label: "DESK", solid: true}, {r: [110, 120, 90, 80], c: "#4FC3F7", top: "#81D4FA", label: "🐠"},
+    {r: [600, 440, 90, 26], c: "#FFF59D", label: "EMPLOYEE OF THE MONTH"}, {r: [700, 470, 100, 26], c: "#B0BEC5", label: "SUPPLY CLOSET"},
+    {r: [300, 640, 110, 26], c: "#5D4037", label: "PODIUM"}, {r: [560, 120, 120, 50], c: "#90A4AE", label: "MONITORS", solid: true}],
+  fix: [
+    {id: "mic", e: "🎙️", x: 760, y: 130, r: 16, size: 28, label: "PA microphone"},
+    {id: "chair", e: "🪑", x: 410, y: 235, r: 18, size: 28, label: "manager's chair"},
+    {id: "typewriter", e: "⌨️", x: 250, y: 300, r: 16, high: true, size: 26, label: "typewriter"}, {id: "copier", e: "🖨️", x: 160, y: 560, r: 18, size: 30, label: "copier"},
+    {id: "plug", e: "🔌", x: 620, y: 190, r: 14, size: 24, label: "monitor plug"},
+    {id: "clock", e: "🕛", x: 520, y: 470, r: 16, size: 26, label: "lodge clock"}, {id: "bellrope", e: "🔔", x: 450, y: 460, r: 16, high: true, size: 30, label: "closing bell"},
+    {id: "gate", e: "🚪", x: 715, y: 1070, r: 18, size: 32, c: "#D7CCC8"},
+  ],
+  objs: [
+    {id: "mkeys", e: "🗝️", x: 790, y: 300, high: true, own: "mgr"},
+    {id: "eomphoto", e: "🖼️", x: 640, y: 480, own: "mgr"}, {id: "selfie", e: "🦛", x: 200, y: 720},
+    {id: "cabinet", e: "🗄️", x: 560, y: 620, heavy: true, r: 24, c: "#B0BEC5"},
+    {id: "coffee", e: "☕", x: 400, y: 190, own: "mgr"}, {id: "mudcup", e: "🟤", x: 120, y: 760},
+    {id: "trophy", e: "🏆", x: 700, y: 110, high: true, own: "mgr"},
+    {id: "speech", e: "📄", x: 350, y: 680, own: "mgr"}, {id: "toastcards", e: "📇", x: 780, y: 760},
+    {id: "sparekey", e: "🔑", x: 120, y: 330, high: true, own: "mgr"},
+    {id: "safe", e: "🧰", x: 250, y: 200, heavy: true, r: 24, c: "#616161"},
+  ],
+  npcs: [
+    {id: "mgr", look: "manager", x: 410, y: 260, beh: "route", route: [[410, 260, 6], [420, 600, 4], [650, 650, 3], [420, 600, 2]], staff: true, name: "Manager"},
+    {id: "sec", look: "sec", x: 650, y: 280, beh: "wander", rad: 60, staff: true, name: "Secretary"},
+    {id: "g1", look: "tourist1", x: 300, y: 560, beh: "wander", rad: 60}, {id: "g2", look: "guest2", x: 600, y: 700, beh: "wander", rad: 60},
+  ],
+  pranks: [
+    {id: "keys", text: "Steal the master keys off the hook", who: "G", check: W => W.holds("G", "mkeys")},
+    {id: "pa", text: "Bellow over the lodge speakers", who: "H", big: true, check: W => W.ev("use", e => e.who === "H" && e.obj === "mic", 4) && W.ev("noise", e => e.who === "H", 2),
+      after: W => ["mgr", "sec", "g1", "g2"].forEach((s, i) => W.script(s, [{wait: i * .3}, {say: ["WHO'S ON THE MIC?!", "My coffee went everywhere!", "Earthquake?!", "Is that the lunch bell?"][i], s: "scream"}, {emote: "🙉", t: 3}, {st: W.npc(s).beh}]))},
+    {id: "eom", text: "Swap the Employee of the Month photo for a hippo selfie", who: "B", check: W => W.inZ("selfie", "eom") && !W.inZ("eomphoto", "eom") && !W.held("G") && !W.held("H"), keep: ["selfie"],
+      after: W => W.script("sec", [{wait: 3}, {go: [640, 520]}, {say: "Employee of the Month: …Harriet?", s: "gasp"}, {emote: "🦛", t: 3}])},
+    {id: "cabinet", text: "Push the filing cabinet against the supply closet door", who: "H", check: W => W.inZ("cabinet", "closet"), keep: ["cabinet"]},
+    {id: "spin", text: "Spin the manager's chair until he's dizzy (while he's sitting in it)", who: "G", check: W => W.uses("chair") >= 4 && W.near("mgr", "G", 120) && W.inZ("mgr", "desk") === false && W.npc("mgr").x > 350 && W.npc("mgr").y < 300,
+      after: W => W.script("mgr", [{spin: 1, wait: 2}, {say: "Whoooa… the room is spinning…", s: "gasp"}, {emote: "😵‍💫", t: 3}])},
+    {id: "coffee", text: "Swap the manager's coffee for mud", who: "B", check: W => W.inZ("mudcup", "desk") && !W.inZ("coffee", "desk") && !W.held("G") && !W.held("H"), keep: ["mudcup"],
+      after: W => W.script("mgr", [{wait: 4}, {say: "Ahh, coffee… BLEHHH!", s: "scream"}, {emote: "🤢", t: 3}])},
+    {id: "memo", text: "Post a fake FREE ICE CREAM memo: Ginger types it, Harriet runs the copier", who: "B", big: true, check: W => W.ev("use", e => e.who === "G" && e.obj === "typewriter", 12) && W.ev("use", e => e.who === "H" && e.obj === "copier", 12),
+      after: W => ["g1", "g2", "sec", "mgr"].forEach((s, i) => W.script(s, [{wait: i * .4}, {say: ["FREE ICE CREAM?!", "WHERE?!", "I didn't approve this!", "WHO SENT THIS MEMO?!"][i], s: i < 2 ? "laugh" : "scream"}, {go: [450, 1150], run: 1}, {wait: 4}, {go: W.npc(s).home}, {st: W.npc(s).beh}]))},
+    {id: "trophy", text: "Drop the manager's golf trophy in the fish tank", who: "G", check: W => W.inZ("trophy", "tank") && W.held("G") !== "trophy", keep: ["trophy"]},
+    {id: "plug", text: "Unplug the security monitors", who: "H", check: W => W.used("plug"),
+      after: W => { W.set("blind"); W.script("sec", [{say: "The cameras are down!", s: "gasp"}, {emote: "📺", t: 2}]); }},
+    {id: "bell", text: "Ring the closing bell at noon: Harriet sets the clock, Ginger rings the bell", who: "B", big: true, check: W => W.ev("use", e => e.who === "H" && e.obj === "clock", 10) && W.used("bellrope"),
+      after: W => ["sec", "g1", "g2"].forEach((s, i) => W.script(s, [{wait: i * .5}, {say: ["Closing time already? Bye!", "The lodge is CLOSING?", "Guess I'll go nap."][i], s: "laugh"}, {go: [450, 1150]}, {wait: 6}, {go: W.npc(s).home}, {st: W.npc(s).beh}]))},
+    {id: "speech", text: "Swap the manager's speech for the wedding toast cards", who: "G", check: W => W.inZ("toastcards", "podium") && !W.inZ("speech", "podium") && W.held("G") !== "toastcards", keep: ["toastcards"],
+      after: W => W.script("mgr", [{go: [350, 690]}, {say: "Welcome, guests… to our beautiful wedding…?", s: "gasp"}, {emote: "😳", t: 3}])},
+    {id: "lockout", text: "Lock the manager out of his own office: Ginger takes the spare key, Harriet pushes the safe against the door", who: "B", big: true, check: W => W.holds("G", "sparekey") && W.inZ("safe", "odoor") && W.inZ("mgr", "hall"), keep: ["safe"],
+      after: W => W.script("mgr", [{go: [420, 470]}, {say: "Why won't my door open?!", s: "hey"}, {wait: 1.5}, {say: "WHERE IS MY SPARE KEY?!", s: "scream"}, {emote: "😡", t: 4}])},
+  ],
+});
+
+/* ===== Area 9: Wedding Lawn & Gardens ===== */
+Object.assign(LOOKS, {bride2: {shirt: "#FFFFFF", hat: "none", skin: "#8D5524"}, groom2: {shirt: "#37474F", hat: "none", skin: "#FFDBAC"}, gardener: {shirt: "#558B2F", hat: "sun", skin: "#C68642"}, officiant: {shirt: "#4A148C", hat: "none", skin: "#F1C27D"}});
+area({
+  name: "Wedding Lawn", ground: "#9CCC65", amb: "garden",
+  start: {G: [420, 1110], H: [490, 1110]}, entrance: [450, 1140],
+  pen: {r: [730, 1000, 140, 140], gate: "gate"},
+  walls: [RC(722, 1000, 8, 140), RC(730, 992, 140, 8)],
+  floors: [{r: [390, 140, 120, 720], c: "#FFFFFF"}, {r: [300, 100, 300, 60], c: "#F8BBD0"}, {r: [390, 860, 120, 340], c: PAL.path}],
+  trees: [[90, 120, 38], [860, 120, 36], [90, 520, 34], [860, 560, 34], [140, 860, 36]],
+  zones: {altar: [300, 100, 300, 90], aisle: [390, 190, 120, 520], frontrow: [250, 200, 140, 80], ceremony: [200, 100, 500, 500], pillow: [560, 230, 60, 50],
+    signpost: [600, 820, 90, 60], aisleEnd: [380, 100, 140, 80]},
+  deco: [
+    {r: [240, 200, 150, 22], c: "#FFFFFF", label: "", solid: true}, {r: [510, 200, 150, 22], c: "#FFFFFF", label: "", solid: true},
+    {r: [240, 300, 150, 22], c: "#FFFFFF", label: "", solid: true}, {r: [510, 300, 150, 22], c: "#FFFFFF", label: "", solid: true},
+    {r: [600, 820, 90, 26], c: "#F8BBD0", label: "JUST MARRIED"}, {r: [120, 300, 70, 90], c: "#43A047", top: "#66BB6A", label: "🦒", solid: true},
+    {r: [560, 230, 60, 30], c: "#FFFFFF", label: "💍"},
+  ],
+  fix: [
+    {id: "valve", e: "🚰", x: 120, y: 620, r: 16, size: 26, label: "sprinkler valve"}, {id: "sprinkler", e: "💦", x: 220, y: 450, r: 14, high: true, size: 24, label: "sprinkler head"},
+    {id: "topiary", e: "🌿", x: 155, y: 300, r: 16, high: true, size: 26, label: "giraffe topiary"},
+    {id: "dovecage", e: "🕊️", x: 720, y: 160, r: 16, high: true, size: 30, label: "dove cage"},
+    {id: "trainrope", e: "🎀", x: 460, y: 160, r: 12, size: 22, label: "bride's train"}, {id: "mower", e: "🚜", x: 640, y: 640, r: 22, size: 30, bump: true, label: "mower"},
+    {id: "archpost", e: "🌸", x: 330, y: 110, r: 18, size: 28, bump: true, label: "arch post"}, {id: "vine", e: "🌺", x: 450, y: 90, r: 16, high: true, size: 28, label: "top of the arch"},
+    {id: "gate", e: "🚪", x: 715, y: 1070, r: 18, size: 32, c: "#D7CCC8"},
+  ],
+  objs: [
+    {id: "bouquet", e: "💐", on: "bride", snatch: true, own: "bride"},
+    {id: "glasses", e: "👓", on: "offic", snatch: true, own: "offic", high: true},
+    {id: "rings", e: "💍", x: 590, y: 255, own: "offic"}, {id: "cuke", e: "🥒", x: 760, y: 780},
+    {id: "barrow", e: "🛒", x: 120, y: 760, heavy: true, r: 24, c: "#8D6E63"},
+    {id: "jm", e: "💌", x: 645, y: 845, own: "gard"}, {id: "lionsign", e: "🦁", x: 800, y: 380},
+  ],
+  npcs: [
+    {id: "bride", look: "bride2", x: 430, y: 140, beh: "sit", face: Math.PI / 2, name: "Bride"}, {id: "groom", look: "groom2", x: 480, y: 140, beh: "sit", face: Math.PI / 2},
+    {id: "offic", look: "officiant", x: 455, y: 110, beh: "sit", face: Math.PI / 2, staff: true, name: "Officiant"},
+    {id: "gard", look: "gardener", x: 160, y: 560, beh: "wander", rad: 90, staff: true, name: "Gardener"},
+    {id: "photog", look: "photog", x: 455, y: 520, beh: "photo", face: -Math.PI / 2, every: 4, name: "Photographer"},
+    {id: "w1", look: "guest1", x: 290, y: 250, beh: "sit", face: -Math.PI / 2}, {id: "w2", look: "guest2", x: 580, y: 250, beh: "sit", face: -Math.PI / 2},
+    {id: "w3", look: "tourist2", x: 290, y: 350, beh: "sit", face: -Math.PI / 2},
+  ],
+  pranks: [
+    {id: "bouquet", text: "Steal the bride's bouquet", who: "G", check: W => W.holds("G", "bouquet")},
+    {id: "sprinkle", text: "Sprinkler ambush: Harriet opens the valve, Ginger aims it at the photographer", who: "B", big: true, check: W => W.ev("use", e => e.who === "H" && e.obj === "valve", 5) && W.ev("use", e => e.who === "G" && e.obj === "sprinkler", 5),
+      after: W => { W.fx("splash", W.npc("photog").x, W.npc("photog").y); W.script("photog", [{say: "MY CAMERA!", s: "scream"}, {go: [700, 700], run: 1}, {emote: "💦", t: 3}, {wait: 2}, {go: W.npc("photog").home}, {st: "photo"}]); }},
+    {id: "rings", text: "Swap the rings on the pillow for a cucumber", who: "G", check: W => W.inZ("cuke", "pillow") && !W.inZ("rings", "pillow") && W.held("G") !== "cuke", keep: ["cuke"],
+      after: W => W.script("offic", [{wait: 3}, {say: "And now, the rings… is this a cucumber?", s: "gasp"}, {emote: "🥒", t: 3}, {st: "sit"}])},
+    {id: "topiary", text: "Chew the head off the giraffe topiary", who: "G", check: W => W.uses("topiary") >= 3,
+      after: W => W.script("gard", [{go: [160, 380], run: 1}, {say: "SIX MONTHS I trimmed that!", s: "scream"}, {emote: "😭", t: 3}, {st: "wander"}])},
+    {id: "frontrow", text: "Sit in the front row so the ceremony can't start", who: "H", check: W => W.sitting("H") && W.inZ("H", "frontrow"),
+      after: W => W.script("offic", [{say: "Ahem. We'll wait for the… guest… to move.", s: "grumble"}, {emote: "⏳", t: 4}, {st: "sit"}])},
+    {id: "glasses", text: "Steal the officiant's glasses", who: "G", check: W => W.holds("G", "glasses"),
+      after: W => W.script("offic", [{say: "Dearly be… I can't read a thing!", s: "gasp"}, {emote: "🤓", t: 3}, {st: "sit"}])},
+    {id: "doves", text: "Release the doves early: Ginger opens the cage, Harriet bellows them out", who: "B", big: true, check: W => W.used("dovecage") && W.ev("noise", e => e.who === "H", 3) && W.near("H", "offic", 340),
+      after: W => { for(let i = 0; i < 8; i++) setTimeout(() => W.fx("poof", 640 + Math.random() * 160, 120 + Math.random() * 120), i * 200); ["bride", "w1", "w2"].forEach((s, i) => W.script(s, [{say: ["The DOVES! Not yet!", "Duck!", "One landed on my hat!"][i], s: "scream"}, {emote: "🕊️", t: 3}, {st: "sit"}])); }},
+    {id: "barrow", text: "Roll the fertilizer wheelbarrow into the aisle", who: "H", check: W => W.inZ("barrow", "aisle"), keep: ["barrow"],
+      after: W => ["w1", "w3"].forEach((s, i) => W.script(s, [{say: i ? "What is that SMELL?" : "Ew!", s: "gasp"}, {emote: "🤢", t: 3}, {st: "sit"}]))},
+    {id: "sign", text: "Swap the JUST MARRIED sign for the LIONS AHEAD sign", who: "G", check: W => W.inZ("lionsign", "signpost") && !W.inZ("jm", "signpost") && W.held("G") !== "lionsign", keep: ["lionsign"]},
+    {id: "train", text: "Tie the bride's train to the gardener's mower", who: "B", big: true, check: W => W.ev("use", e => e.who === "G" && e.obj === "trainrope", 8) && W.used("mower"),
+      after: W => { W.busy("bride"); W.script("bride", [{say: "Why am I MOVING?!", s: "scream"}, {go: [640, 600], run: 1}, {go: [200, 700], run: 1}, {go: [430, 140], run: 1}, {emote: "😱", t: 3}, {st: "sit"}]); W.script("gard", [{say: "STOP THE MOWER!", s: "scream"}, {go: [640, 640], run: 1}]); }},
+    {id: "portrait", text: "Photobomb the wedding portrait", who: "B", check: W => (W.cnt.photo2_photog || 0) >= 1},
+    {id: "arch", text: "Bring the flower arch down: Harriet bumps the post, Ginger pulls the top vine", who: "B", big: true, check: W => W.used("archpost") && W.used("vine"),
+      after: W => { W.fx("poof", 450, 110); ["bride", "groom", "offic"].forEach((s, i) => W.script(s, [{say: ["My hair is full of petals!", "Honey, you look… floral.", "I now pronounce you… covered in flowers."][i], s: i === 2 ? "grumble" : "gasp"}, {emote: "🌸", t: 3}, {st: "sit"}])); }},
+  ],
+});
+
+/* ===== Area 10: Golf Course ===== */
+Object.assign(LOOKS, {golfer: {shirt: "#F06292", hat: "cap", skin: "#FFDBAC"}, golfer2: {shirt: "#4DB6AC", hat: "cap", skin: "#8D5524"}, caddie: {shirt: "#FFFFFF", hat: "cap", skin: "#C68642"}});
+area({
+  name: "Golf Course", ground: "#7CB342", amb: "garden",
+  start: {G: [420, 1110], H: [490, 1110]}, entrance: [450, 1140],
+  pen: {r: [730, 1000, 140, 140], gate: "gate"},
+  walls: [RC(722, 1000, 8, 140), RC(730, 992, 140, 8)],
+  water: [[560, 300, 260, 200, "water"]],
+  floors: [{r: [300, 100, 260, 180], c: "#AED581"}, {r: [120, 560, 220, 150], c: "#FFE082"}, {r: [600, 760, 160, 100], c: "#C5E1A5"}, {r: [390, 860, 120, 340], c: PAL.path}],
+  trees: [[90, 120, 38], [860, 120, 36], [90, 900, 36], [860, 620, 32]],
+  zones: {green: [300, 100, 260, 180], hole: [420, 170, 40, 40], bunker: [120, 560, 220, 150], pond: [560, 300, 260, 200], greenpond: [540, 260, 120, 120],
+    tee: [600, 760, 160, 100], bag: [700, 820, 60, 50], cartseat: [220, 860, 70, 60]},
+  deco: [{r: [420, 170, 40, 40], c: "#33691E", label: "⛳"}, {r: [120, 560, 220, 26], c: "#FFE082", label: "SAND TRAP"}, {r: [600, 760, 160, 26], c: "#AED581", label: "TEE"}],
+  fix: [
+    {id: "steer", e: "🛞", x: 300, y: 880, r: 14, size: 24, label: "cart wheel"},
+    {id: "pondballs", e: "⚪", x: 690, y: 420, r: 18, size: 22, label: "balls in the pond"}, {id: "stack", e: "🗑️", x: 520, y: 560, r: 16, high: true, size: 26, label: "hiding spot"},
+    {id: "valve", e: "🚰", x: 120, y: 420, r: 16, size: 26, label: "sprinkler valve"}, {id: "timer", e: "⏲️", x: 200, y: 400, r: 14, high: true, size: 24, label: "sprinkler timer"},
+    {id: "holeball", e: "🏐", x: 440, y: 230, r: 16, size: 20, bump: true, label: "golf ball"},
+    {id: "gate", e: "🚪", x: 715, y: 1070, r: 18, size: 32, c: "#D7CCC8"},
+  ],
+  objs: [
+    {id: "ball", e: "⚪", x: 380, y: 200, own: "golf1"},
+    {id: "balls", e: "🎱", x: 650, y: 800, own: "golf2"}, {id: "eggs", e: "🥚", x: 140, y: 1000},
+    {id: "cart", e: "🛺", x: 260, y: 890, heavy: true, r: 26, c: "#FFFFFF"},
+    {id: "flag", e: "🚩", x: 440, y: 160, high: true, own: "caddie"},
+    {id: "driver", e: "🏌️", x: 730, y: 840, own: "golf2"}, {id: "flamingo", e: "🦩", x: 860, y: 980},
+    ...[0, 1, 2, 3, 4].map(i => ({id: "c" + i, e: "🛺", x: 140 + i * 70, y: 760, heavy: true, r: 22, c: "#ECEFF1"})),
+  ],
+  npcs: [
+    {id: "golf1", look: "golfer", x: 360, y: 230, beh: "wander", rad: 50, name: "Golfer"},
+    {id: "golf2", look: "golfer2", x: 680, y: 800, beh: "wander", rad: 40, name: "Golfer"},
+    {id: "caddie", look: "caddie", x: 470, y: 250, beh: "wander", rad: 60, staff: true, name: "Caddie"},
+    {id: "gk", look: "gardener", x: 200, y: 450, beh: "wander", rad: 80, staff: true, name: "Groundskeeper"},
+  ],
+  pranks: [
+    {id: "ball", text: "Steal a golfer's ball right before the putt", who: "G", check: W => W.holds("G", "ball"),
+      after: W => W.script("golf1", [{say: "Where'd my ball go?!", s: "hey"}, {emote: "🤨", t: 3}, {st: "wander"}])},
+    {id: "bunker", text: "Sit in the sand trap so nobody can play through", who: "H", big: true, check: W => W.sitting("H") && W.inZ("H", "bunker"),
+      after: W => W.script("golf2", [{go: [360, 560]}, {say: "Um. Fore? FORE?!", s: "hey"}, {wait: 2}, {say: "I'm taking a penalty stroke.", s: "grumble"}, {st: "wander"}])},
+    {id: "eggs", text: "Swap the golf balls for eggs", who: "G", check: W => W.inZ("eggs", "tee") && !W.inZ("balls", "tee") && W.held("G") !== "eggs", keep: ["eggs"],
+      after: W => W.script("golf2", [{wait: 3}, {say: "Mighty swing… SPLAT. Ew!", s: "gasp"}, {emote: "🍳", t: 3}, {st: "wander"}])},
+    {id: "cart", text: "Steal a golf cart: Harriet sits in the seat, Ginger steers", who: "B", big: true, check: W => W.sitting("H") && W.inZ("H", "cartseat") && W.used("steer"),
+      after: W => ["golf1", "gk"].forEach((s, i) => W.script(s, [{say: i ? "STOP THAT CART!" : "Is that a HIPPO driving?", s: "scream"}, {go: [300, 900], run: 1}, {emote: "😱", t: 3}, {st: "wander"}]))},
+    {id: "flag", text: "Move the hole's flag into the pond", who: "G", check: W => W.inZ("flag", "pond") && W.held("G") !== "flag", keep: ["flag"],
+      after: W => W.script("caddie", [{go: [560, 280]}, {say: "Hole nine is… underwater?", s: "gasp"}, {st: "wander"}])},
+    {id: "swamp", text: "Splash the putting green into a swamp", who: "H", check: W => W.ev("splash", e => e.who === "H", 2) && W.inZ("H", "greenpond"),
+      after: W => W.script("golf1", [{say: "MY PUTT! It's a lake now!", s: "scream"}, {emote: "🌊", t: 3}, {st: "wander"}])},
+    {id: "pondballs", text: "Fish every ball out of the pond and hide them: Harriet dives, Ginger stacks them up high", who: "B", check: W => W.uses("pondballs") >= 1 && W.uses("stack") >= 3},
+    {id: "driver", text: "Swap a golfer's driver for the pool flamingo", who: "G", check: W => W.inZ("flamingo", "bag") && !W.inZ("driver", "bag") && W.held("G") !== "flamingo", keep: ["flamingo"],
+      after: W => W.script("golf2", [{wait: 2}, {say: "My driver feels… squishy.", s: "gasp"}, {emote: "🦩", t: 3}, {st: "wander"}])},
+    {id: "swing", text: "Bellow right in the middle of a golfer's swing", who: "H", check: W => W.ev("noise", e => e.who === "H", 1) && W.near("H", "golf1", 160),
+      after: W => W.script("golf1", [{spin: 1, wait: 1}, {say: "WHIFF! I missed the ball completely!", s: "scream"}, {emote: "😤", t: 3}, {st: "wander"}])},
+    {id: "sprinklers", text: "Turn on the sprinklers mid-tournament: Harriet opens the valve, Ginger sets the timer", who: "B", big: true, check: W => W.ev("use", e => e.who === "H" && e.obj === "valve", 5) && W.ev("use", e => e.who === "G" && e.obj === "timer", 5),
+      after: W => { for(let i = 0; i < 8; i++) setTimeout(() => W.fx("splash", 200 + Math.random() * 500, 150 + Math.random() * 600), i * 250); ["golf1", "golf2", "caddie"].forEach((s, i) => W.script(s, [{say: ["MY SHOES!", "RAIN DELAY!", "Who turned these on?!"][i], s: "scream"}, {go: [450, 1100], run: 1}, {wait: 3}, {go: W.npc(s).home}, {st: "wander"}])); }},
+    {id: "carts", text: "Shove all five parked carts into the sand trap", who: "H", check: W => [0, 1, 2, 3, 4].every(i => W.inZ("c" + i, "bunker")), keep: ["c0", "c1", "c2", "c3", "c4"],
+      after: W => W.script("gk", [{go: [230, 600]}, {say: "HOW did they all get in there?!", s: "scream"}, {emote: "🤯", t: 3}, {st: "wander"}])},
+    {id: "hio", text: "Sink a hole-in-one: Ginger distracts the caddie, Harriet noses the ball in", who: "B", check: W => W.ev("noise", e => e.who === "G", 6) && W.used("holeball"),
+      after: W => { ["golf1", "caddie"].forEach((s, i) => W.script(s, [{say: i ? "Do hippos count as members?" : "A HOLE-IN-ONE?!", s: i ? "gasp" : "laugh"}, {emote: "🏆", t: 3}, {st: "wander"}])); }},
+  ],
+});
+
 /* ===================== drawing (flat, chunky, rounded) ===================== */
 function rr(c, x, y, w, h, r){ c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); }
 function circ(c, x, y, r, fill, stroke, lw = 3){ c.beginPath(); c.arc(x, y, r, 0, 7); if(fill){ c.fillStyle = fill; c.fill(); } if(stroke){ c.strokeStyle = stroke; c.lineWidth = lw; c.stroke(); } }
@@ -886,6 +1361,7 @@ class World {
     this.chk = 0; this.stillT = {G: 0, H: 0}; this.lastCharge = -9;
     const self = this;
     this.W = {
+      get t(){ return self.t; }, // area scripts need the clock
       get t(){ return self.t; }, flag: this.flag, cnt: this.cnt, P: this.P,
       o: id => self.o(id), npc: id => self.npc(id), f: id => self.fixt(id),
       pos: a => self.pos(a), inZ: (a, z) => self.inZ(a, z), near: (a, b, d) => self.near(a, b, d),
@@ -910,7 +1386,7 @@ class World {
   near(a, b, d = 60){ const p = this.pos(a), q = this.pos(b); return !!(p && q && Math.hypot(p.x - q.x, p.y - q.y) < d); }
   sitting(r, id, d){ const a = this.P[r]; if(!a || !a.sit) return false; if(!id) return true; const p = this.pos(id); if(!p) return false; return Math.hypot(p.x - a.x, p.y - a.y) < (d || (p.r || 16) + RAD[r] + SEAT_D); }
   stay(r, z, s){ const k = "_stay" + r + z; if(this.inZ(r, z)){ this.cnt[k] = (this.cnt[k] || 0) + .2; } else this.cnt[k] = 0; return this.cnt[k] >= s; }
-  ev(k, f, s = 3){ return this.events.some(e => e.k === k && this.t - e.at <= s && (!f || f(e))); }
+  ev(k, f, s = 3){ for(let i = this.events.length - 1; i >= 0; i--){ const e = this.events[i]; if(e.k === k && this.t - e.at <= s && (!f || f(e))) return e; } return false; }
   emit(k, d){ const e = Object.assign({k, at: this.t, i: ++this.eid}, d); this.events.push(e); if(this.events.length > 40) this.events.shift(); return e; }
   held(r){ return this.objs.find(o => o.holder === r); }
   say(id, txt, s = 2, snd){ const n = this.npc(id); if(!n) return; n.bub = {txt, until: this.t + s}; if(snd) this.emit("say", {obj: id, s: snd}); }
@@ -1098,6 +1574,149 @@ class World {
   }
 }
 
+/* ===== FINALE: THE JEEP ESCAPE =====
+   Ginger (host phone) sees the road and works the gas. Harriet steers and brakes blind, with only a cracked rear-view mirror.
+   Staff jeeps chase. Gates, crossing herds, mud and cliffs. Crash or get caught = restart the whole escape. ~3 minutes clean. */
+const JV = {L: 33000, maxV: 225, chaseV: 196, acc: 150, coast: 55, brake: 320, roadW: 160, cliffW: 118};
+function jRand(seed){ let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+const JT = (() => { // the track: same on both phones
+  const r = jRand(7741), cx = y => 200 * Math.sin(y / 1900) + 120 * Math.sin(y / 730 + 1.3) + 60 * Math.sin(y / 310 + .4);
+  const segs = [], obs = []; let y = -1600;
+  while(y > -JV.L + 1400){ const kind = r(), len = 900 + r() * 1100;
+    if(kind < .26) segs.push({y0: y, y1: y - len, cliff: 1});
+    y -= len + 300 + r() * 500; }
+  for(let y2 = -1400; y2 > -JV.L + 900; y2 -= 520 + r() * 520){ const k = r();
+    if(k < .36) obs.push({t: "gate", y: y2, open: r() < .5 ? -1 : 1});
+    else if(k < .62) obs.push({t: "herd", y: y2, ph: r() * 6.28, sp: .55 + r() * .35, e: ["🐘", "🦓", "🐃", "🦒"][Math.floor(r() * 4)]});
+    else if(k < .88) obs.push({t: "mud", y: y2, dx: (r() - .5) * 90, w: 70 + r() * 50});
+    else obs.push({t: "rock", y: y2, dx: (r() < .5 ? -1 : 1) * (25 + r() * 35)}); }
+  const cliffAt = y => segs.some(s => y <= s.y0 && y >= s.y1);
+  return {cx, segs, obs, cliffAt, width: y => cliffAt(y) ? JV.cliffW : JV.roadW};
+})();
+function jHerdX(o, t){ return JT.cx(o.y) + Math.sin(t * o.sp + o.ph) * 150; }
+
+class JeepRun {
+  constructor(){ this.reset(); }
+  reset(){ this.x = JT.cx(0); this.y = 0; this.a = 0; this.v = 0; this.t = 0; this.ch = [{x: JT.cx(620) - 30, y: 640}, {x: JT.cx(780) + 30, y: 800}]; this.runT = 0; this.st = "count"; this.stT = 3.2; this.msg = ""; }
+  step(dt, gas, steer, brake){
+    this.t += dt;
+    if(this.st === "count"){ this.stT -= dt; if(this.stT <= 0){ this.st = "run"; } return; }
+    if(this.st === "crash"){ this.stT -= dt; if(this.stT <= 0){ const runs = (this.runs || 1) + 1; this.reset(); this.runs = runs; } return; }
+    if(this.st !== "run") return; this.runT += dt;
+    const half = JT.width(this.y) / 2, off = this.x - JT.cx(this.y), offRoad = Math.abs(off) > half;
+    const inMud = JT.obs.some(o => o.t === "mud" && Math.abs(o.y - this.y) < 38 && Math.abs(JT.cx(o.y) + o.dx - this.x) < o.w / 2);
+    let top = JV.maxV; if(inMud) top = 85; if(offRoad) top = 105;
+    if(brake) this.v = Math.max(0, this.v - JV.brake * dt); else if(gas) this.v = Math.min(top, this.v + JV.acc * dt); else this.v = Math.max(0, this.v - JV.coast * dt);
+    if(this.v > top) this.v = Math.max(top, this.v - 260 * dt);
+    const turn = steer * 1.9 * Math.min(1, this.v / 70) + (inMud ? Math.sin(this.t * 9) * .8 : 0);
+    this.a = Math.max(-1.2, Math.min(1.2, this.a + turn * dt)); this.a *= (1 - Math.min(1, dt * .35)); // the wheel slowly self-centers
+    this.x += Math.sin(this.a) * this.v * dt; this.y -= Math.cos(this.a) * this.v * dt;
+    // what kills you
+    if(offRoad && JT.cliffAt(this.y) && Math.abs(off) > half + 14) return this.crash("Over the cliff!");
+    if(Math.abs(off) > JV.roadW / 2 + 160) return this.crash("Lost in the bush!");
+    for(const o of JT.obs){ if(Math.abs(o.y - this.y) > 26) continue; const c = JT.cx(o.y);
+      if(o.t === "gate"){ const gx = this.x - c; if(o.open === -1 ? gx > -6 : gx < 6) return this.crash("Smashed the gate!"); }
+      if(o.t === "herd" && Math.abs(jHerdX(o, this.t) - this.x) < 34) return this.crash("Hit the herd!");
+      if(o.t === "rock" && Math.abs(c + o.dx - this.x) < 24) return this.crash("Hit a boulder!"); }
+    // the staff chasing you
+    if(this.runT > 2.5) for(const c of this.ch){ const ty = this.y + 70, gap = c.y - ty, sp = JV.chaseV + Math.max(0, Math.min(18, (gap - 520) * .08));
+      c.y -= sp * dt; c.x += (JT.cx(c.y) - c.x) * Math.min(1, dt * 2) + (this.x - c.x) * Math.min(1, dt * .6) * (gap < 260 ? 1 : 0);
+      if(Math.hypot(c.x - this.x, c.y - this.y) < 38) return this.crash("Caught by the staff!", "caught"); }
+    if(this.y <= -JV.L){ this.st = "won"; this.msg = "Free!"; }
+  }
+  crash(m, k = "crash"){ this.st = "crash"; this.stT = 3; this.msg = m; this.kind = k; this.v = 0; }
+  snap(){ return {j: 1, x: Math.round(this.x), y: Math.round(this.y), a: Math.round(this.a * 100) / 100, v: Math.round(this.v), st: this.st, stT: Math.round(this.stT * 10) / 10, msg: this.msg, runs: this.runs || 1,
+    c: this.ch.map(c => [Math.round(c.x), Math.round(c.y)]), t: Math.round(this.t * 10) / 10}; }
+}
+function jeepScreen(){
+  const key = "jeep" + (R.created || ""); if(mountedKey === key){ PLAY?.onState?.(); return; }
+  mountedKey = key; stopPlay(); app.innerHTML = ""; PLAY = new JeepPlay(); MUSIC.play(4); AMB.play("jeeps");
+}
+class JeepPlay {
+  constructor(){
+    this.me = S.pid; this.ginger = this.me === "p1"; this.dead = false; this.inp = {gas: 0, steer: 0, brake: 0}; this.rem = {steer: 0, brake: 0}; this.state = null;
+    this.w = el(this.ginger ? `<div class="jeep"><div class="jhud"><b>🚙 ESCAPE</b><span data-prog></span><button class="mini" data-m>☰</button></div><canvas class="jcv"></canvas>
+        <div class="jmsg"></div><div class="jctl"><div class="jtip">You're the eyes. Tell Harriet where to steer!</div><button class="pad gas">GAS</button></div><div class="sheet hidden"></div></div>`
+      : `<div class="jeep harriet"><div class="jhud"><b>🚙 ESCAPE</b><span data-prog></span><button class="mini" data-m>☰</button></div>
+        <div class="mirror"><canvas class="mcv" width="300" height="90"></canvas><svg class="crack" viewBox="0 0 300 90"><path d="M190 10 L172 38 L196 52 L168 84 M172 38 L140 46 M196 52 L230 60" stroke="#fff" stroke-width="2" fill="none" opacity=".75"/></svg></div>
+        <div class="jmsg"></div><div class="jtip">You can't see the road. Listen to Ginger!</div>
+        <div class="wheelbox"><div class="wheel"><div class="spoke"></div><div class="hub">🦛</div></div></div><div class="jctl"><button class="pad brake">BRAKE</button></div><div class="sheet hidden"></div></div>`);
+    app.append(this.w);
+    this.w.querySelector("[data-m]").onclick = () => { const sh = this.w.querySelector(".sheet"); sh.innerHTML = `<div class="sheet-in"><h2>Jeep escape</h2><div class="sndpanel">${soundPanelHTML()}</div><button class="btn" data-x>Keep driving</button><button class="btn ghost" data-l>Leave game</button></div>`;
+      sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden"); sh.querySelector("[data-l]").onclick = leave; bindSoundPanel(sh); };
+    const hold = (sel, k) => { const b = this.w.querySelector(sel); if(!b) return; const on = e => { e.preventDefault(); this.inp[k] = 1; b.classList.add("on"); }, off = () => { this.inp[k] = 0; b.classList.remove("on"); };
+      b.addEventListener("pointerdown", on); ["pointerup", "pointercancel", "pointerleave"].forEach(ev => b.addEventListener(ev, off)); };
+    hold(".gas", "gas"); hold(".brake", "brake");
+    if(this.ginger){ this.run = new JeepRun(); this.cv = this.w.querySelector(".jcv"); this.offH = api.listen(rid(S.code) + "_p_p2", v => { if(v && v.jt){ this.rem = {steer: v.js || 0, brake: v.jb || 0}; this.remT = Date.now(); } }); }
+    else { this.wheel = this.w.querySelector(".wheel"); this.mcv = this.w.querySelector(".mcv"); this.bindWheel();
+      this.offW = api.listen(rid(S.code) + "_w", v => { if(v && v.j){ this.prevS = this.state; this.state = v; this.recvT = Date.now(); } }); }
+    this.last = performance.now(); this.sendT = 0; this.loop = () => { if(this.dead) return; const now = performance.now(), dt = Math.min(.05, (now - this.last) / 1000); this.last = now; this.frame(dt); requestAnimationFrame(this.loop); };
+    requestAnimationFrame(this.loop);
+  }
+  bindWheel(){ // drag the wheel left/right; it springs back when you let go
+    const wb = this.w.querySelector(".wheelbox"); let id = null, x0 = 0, s0 = 0;
+    wb.addEventListener("pointerdown", e => { id = e.pointerId; x0 = e.clientX; s0 = this.inp.steer; wb.setPointerCapture(id); e.preventDefault(); });
+    wb.addEventListener("pointermove", e => { if(e.pointerId !== id) return; this.inp.steer = Math.max(-1, Math.min(1, s0 + (e.clientX - x0) / 110)); });
+    const up = e => { if(e.pointerId === id){ id = null; this.springing = true; } }; wb.addEventListener("pointerup", up); wb.addEventListener("pointercancel", up);
+  }
+  frame(dt){
+    if(this.ginger){
+      const R0 = this.run, prevSt = R0.st; R0.step(dt, this.inp.gas, this.rem.steer, this.rem.brake);
+      if(R0.st !== prevSt){ if(R0.st === "crash") (R0.kind === "caught" ? SFX.pen : SFX.bonk)?.(); if(R0.st === "run") SFX.spot?.(); if(R0.st === "won") this.win(); }
+      this.sendT += dt; if(this.sendT > .16){ this.sendT = 0; api.update(rid(S.code) + "_w", R0.snap()).catch(() => {}); }
+      this.draw(R0); this.hud(R0.snap());
+    } else {
+      if(this.springing && !this.dragging){ this.inp.steer *= Math.pow(.02, dt); if(Math.abs(this.inp.steer) < .02){ this.inp.steer = 0; this.springing = false; } }
+      this.wheel.style.transform = `rotate(${this.inp.steer * 120}deg)`;
+      this.sendT += dt; if(this.sendT > .1){ this.sendT = 0; api.update(rid(S.code) + "_p_p2", {jt: Date.now(), js: Math.round(this.inp.steer * 100) / 100, jb: this.inp.brake}).catch(() => {}); }
+      if(this.state){ this.mirror(this.state); this.hud(this.state); if(this.state.st === "won") this.win(); }
+    }
+  }
+  hud(s){ const p = Math.max(0, Math.min(100, -s.y / JV.L * 100)); this.w.querySelector("[data-prog]").textContent = `${Math.round(p)}% · try ${s.runs}`;
+    const m = this.w.querySelector(".jmsg"); m.textContent = s.st === "count" ? `Get ready… ${Math.max(1, Math.ceil(s.stT))}` : s.st === "crash" ? `${s.msg} Starting over…` : s.st === "won" ? "You made it!" : ""; m.classList.toggle("show", !!m.textContent); }
+  draw(J){
+    const cv = this.cv, c = cv.getContext("2d"), dpr = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if(cv.width !== Math.round(W * dpr)){ cv.width = W * dpr; cv.height = H * dpr; }
+    c.setTransform(dpr, 0, 0, dpr, 0, 0); const camY = J.y - H * .74, X = x => x - J.x + W / 2, Y = y => y - camY;
+    c.fillStyle = "#C9B26A"; c.fillRect(0, 0, W, H);
+    for(let yy = Math.floor(camY / 60) * 60; yy < camY + H + 60; yy += 60){ c.fillStyle = (Math.floor(yy / 60) % 2) ? "#BFA65E" : "#C9B26A"; c.fillRect(0, Y(yy), W, 60); }
+    // cliffs: dark drop beside the road
+    for(let yy = camY - 20; yy < camY + H + 20; yy += 10){ if(!JT.cliffAt(yy)) continue; const cx = JT.cx(yy), hw = JT.width(yy) / 2;
+      c.fillStyle = "#3E2723"; c.fillRect(0, Y(yy), X(cx - hw - 12), 11); c.fillRect(X(cx + hw + 12), Y(yy), W, 11); }
+    // road
+    c.beginPath(); for(let yy = camY - 20; yy < camY + H + 20; yy += 12){ const cx = JT.cx(yy), hw = JT.width(yy) / 2; c.lineTo(X(cx - hw), Y(yy)); }
+    for(let yy = camY + H + 20; yy > camY - 20; yy -= 12){ const cx = JT.cx(yy), hw = JT.width(yy) / 2; c.lineTo(X(cx + hw), Y(yy)); } c.closePath(); c.fillStyle = "#E3C98A"; c.fill();
+    c.strokeStyle = "rgba(255,255,255,.55)"; c.setLineDash([14, 18]); c.lineWidth = 3; c.beginPath(); for(let yy = camY - 20; yy < camY + H + 20; yy += 12) c.lineTo(X(JT.cx(yy)), Y(yy)); c.stroke(); c.setLineDash([]);
+    // finish
+    if(-JV.L > camY - 40 && -JV.L < camY + H){ c.font = "28px serif"; c.textAlign = "center"; c.fillText("🌳🌳  THE WILD  🌳🌳", X(JT.cx(-JV.L)), Y(-JV.L)); }
+    // obstacles
+    c.textAlign = "center"; c.textBaseline = "middle";
+    for(const o of JT.obs){ if(o.y < camY - 60 || o.y > camY + H + 60) continue; const cx = JT.cx(o.y), hw = JT.width(o.y) / 2;
+      if(o.t === "gate"){ c.fillStyle = "#B71C1C"; const x0 = o.open === -1 ? cx : cx - hw, x1 = o.open === -1 ? cx + hw : cx; c.fillRect(X(x0), Y(o.y) - 6, x1 - x0, 12);
+        c.fillStyle = "#fff"; for(let gx = x0 + 6; gx < x1; gx += 24) c.fillRect(X(gx), Y(o.y) - 6, 10, 12); }
+      if(o.t === "herd"){ c.font = "34px serif"; const hx = jHerdX(o, J.t); c.fillText(o.e, X(hx), Y(o.y)); c.font = "24px serif"; c.fillText(o.e, X(hx - 34), Y(o.y + 14)); }
+      if(o.t === "mud"){ c.fillStyle = "#6D4C41"; c.beginPath(); c.ellipse(X(cx + o.dx), Y(o.y), o.w / 2, 24, 0, 0, 7); c.fill(); }
+      if(o.t === "rock"){ c.font = "34px serif"; c.fillText("🪨", X(cx + o.dx), Y(o.y)); } }
+    // chasers
+    for(const ch of J.ch){ this.jeepShape(c, X(ch.x), Y(ch.y), 0, "#EEEEEE", "STAFF"); }
+    this.jeepShape(c, X(J.x), Y(J.y), J.a, "#FFC93C", "", true);
+  }
+  jeepShape(c, x, y, a, col, label, us){ c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = "#263238"; c.fillRect(-17, -22, 6, 12); c.fillRect(11, -22, 6, 12); c.fillRect(-17, 10, 6, 12); c.fillRect(11, 10, 6, 12);
+    c.fillStyle = col; c.strokeStyle = "#2E2A3A"; c.lineWidth = 2.5; c.beginPath(); c.roundRect(-14, -26, 28, 52, 6); c.fill(); c.stroke();
+    if(us){ c.font = "18px serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("🦒", 0, -6); c.fillText("🦛", 0, 12); }
+    else { c.fillStyle = "#2E2A3A"; c.font = "bold 8px sans-serif"; c.textAlign = "center"; c.fillText(label, 0, 2); }
+    c.restore(); }
+  mirror(s){ // what Harriet sees: the staff jeeps behind, closer = bigger
+    const c = this.mcv.getContext("2d"), W = 300, H = 90; c.fillStyle = "#90A4AE"; c.fillRect(0, 0, W, H); c.fillStyle = "#C9B26A"; c.fillRect(0, H * .45, W, H * .55); c.fillStyle = "#E3C98A"; c.beginPath(); c.moveTo(W / 2 - 20, H * .45); c.lineTo(W / 2 + 20, H * .45); c.lineTo(W, H); c.lineTo(0, H); c.fill();
+    for(const [cx, cy] of s.c){ const d = Math.max(30, cy - s.y), k = Math.min(1.6, 120 / d), px = W / 2 - (cx - s.x) * k * .6; // mirror flips left/right
+      c.fillStyle = "#EEEEEE"; c.strokeStyle = "#263238"; c.lineWidth = 2; c.beginPath(); c.roundRect(px - 18 * k, H * .62 - 12 * k, 36 * k, 26 * k, 4); c.fill(); c.stroke();
+      c.fillStyle = "#FFEB3B"; c.fillRect(px - 14 * k, H * .62 + 4 * k, 7 * k, 5 * k); c.fillRect(px + 7 * k, H * .62 + 4 * k, 7 * k, 5 * k); }
+    const near = Math.min(...s.c.map(([cx, cy]) => cy - s.y)); this.w.querySelector(".mirror").classList.toggle("danger", near < 160);
+  }
+  win(){ if(this.wonSent) return; this.wonSent = 1; SFX.big?.(); if(this.ginger) setTimeout(() => api.update(rid(S.code), {phase: "won", wild: 1}).catch(() => { this.wonSent = 0; }), 2500); }
+  onState(){}
+  stop(){ this.dead = true; this.offH?.(); this.offW?.(); MUSIC.stop?.(); AMB.stop?.(); }
+}
+
 /* ===================== Safari Mischief: game ===================== */
 const SS = LOCAL ? sessionStorage : localStorage;
 const rid = c => "sm_" + c;
@@ -1127,7 +1746,7 @@ function homeScreen(){
   const makeGame = async (startArea = 0, test = false) => { const n = name(); if(!n) return; ac(); err.textContent = "Creating…";
     try{ const L = "ABCDEFGHJKMNPQRSTUVWXYZ"; let code;
       for(let i = 0; i < 12; i++){ code = [...Array(4)].map(() => L[rnd(L.length)]).join(""); if(!isClean(code)) continue; if(!(await api.get(rid(code)))) break; }
-      await api.update(rid(code), {created: Date.now(), phase: "lobby", "players/p1": {name: n}, area: startArea, test: test ? 1 : null});
+      await api.update(rid(code), {created: Date.now(), phase: "lobby", "players/p1": {name: n}, area: startArea, test: test || null});
       S = {code, pid: "p1", name: n}; saveS(); connect();
     }catch(e){ err.textContent = "Couldn't connect: " + (e.code || e.message); } };
   w.querySelector("[data-a=make]").onclick = () => makeGame(0);
@@ -1137,15 +1756,16 @@ function homeScreen(){
     const sh = w.querySelector(".sheet");
     sh.innerHTML = `<div class="sheet-in"><h2>🧪 Test menu</h2><p class="muted small">Start a test game at any area. Your partner joins with the code as usual. Enter your name on the main screen first.</p>
       <div class="tests">${AREAS.map((a, i) => `<button class="btn alt" data-t="${i}">${i + 1}. ${esc(a.name)}</button>`).join("")}
-      <button class="btn ghost" disabled>🚙 Jeep escape (built with the final zone)</button></div><button class="btn" data-x>Close</button></div>`;
+      <button class="btn alt" data-jeep>🚙 Jeep escape</button></div><button class="btn" data-x>Close</button></div>`;
     sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden");
-    sh.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { sh.classList.add("hidden"); makeGame(+b.dataset.t, true); }); };
+    sh.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { sh.classList.add("hidden"); makeGame(+b.dataset.t, true); });
+    sh.querySelector("[data-jeep]").onclick = () => { sh.classList.add("hidden"); makeGame(0, "jeep"); }; };
   w.querySelector("[data-a=join]").onclick = async () => { const n = name(); if(!n) return; ac(); const code = cd.value.trim().toUpperCase(); if(code.length !== 4){ err.textContent = "Enter the 4-letter code."; return; }
     err.textContent = "Joining…";
     try{ const g = await api.get(rid(code)); if(!g){ err.textContent = "No game with that code."; return; }
       let pid = null; if(!g.players?.p2) pid = "p2"; else if(g.players.p2.name === n) pid = "p2"; else if(g.players.p1?.name === n) pid = "p1";
       if(!pid){ err.textContent = "That game already has two players."; return; }
-      const patch = {}; if(!g.players?.[pid]) patch["players/" + pid] = {name: n}; if(g.phase === "lobby") patch.phase = "play"; if(Object.keys(patch).length) await api.update(rid(code), patch);
+      const patch = {}; if(!g.players?.[pid]) patch["players/" + pid] = {name: n}; if(g.phase === "lobby") patch.phase = g.test === "jeep" ? "jeep" : "play"; if(Object.keys(patch).length) await api.update(rid(code), patch);
       S = {code, pid, name: n}; saveS(); connect();
     }catch(e){ err.textContent = "Couldn't connect: " + (e.code || e.message); } };
 }
@@ -1158,6 +1778,7 @@ function render(){
   if(!R) return;
   if(R.phase === "lobby") return lobbyScreen();
   if(R.phase === "won") return wonScreen();
+  if(R.phase === "jeep") return jeepScreen();
   playScreen();
 }
 function lobbyScreen(){
@@ -1173,7 +1794,7 @@ function lobbyScreen(){
 function wonScreen(){
   if(mountedKey === "won") return; mountedKey = "won"; stopPlay(); app.innerHTML = "";
   const w = el(`<div class="home"><h1 class="logo small"><span>Lodge</span><span>Wrecked!</span></h1><div class="card center"><p class="big">🦒🦛</p>
-    <p>Every prank, every area. The safari lodge will never be the same.</p>${galleryHTML()}
+    <p>${R.wild ? "They made it out. Ginger and Harriet are back in the wild, and the lodge will never be the same." : "Every prank, every area. The safari lodge will never be the same."}</p>${galleryHTML()}
     ${S.pid === "p1" ? `<button class="btn" data-a="again">Play again from the start</button>` : `<p class="muted">Ginger can start a new run.</p>`}<button class="btn ghost" data-a="leave">Leave</button></div></div>`);
   app.append(w);
   const a = w.querySelector("[data-a=again]"); if(a) a.onclick = () => api.update(rid(S.code), {phase: "play", area: 0, done: null});
@@ -1218,7 +1839,12 @@ class Play {
     this.last = performance.now(); this.sendT = 0; this.raf = requestAnimationFrame(t => this.frame(t)); this.onState();
   }
   stop(){ MUSIC.stop(); AMB.stop(); cancelAnimationFrame(this.raf); this.dead = true; this.offP?.(); this.offW?.(); removeEventListener("resize", this.fit); }
-  onState(){ const done = (R.done || {})[this.ai] || {}, n = this.A.pranks.filter(p => done[p.id]).length; this.w.querySelector("[data-cnt]").textContent = `${n} of ${this.A.pranks.length} pranks`;
+  onState(){
+    // reset objects: rebuild this area's objects and people on the host, keep finished pranks
+    if(this.resetSeen === undefined) this.resetSeen = R.reset ? R.reset.t : null; // a reset from before you got here doesn't count
+    if(R.reset && R.reset.a === this.ai && R.reset.t !== this.resetSeen){ this.resetSeen = R.reset.t;
+      { if(this.host){ this.world = new World(this.ai, (R.done || {})[this.ai]); this.world.P.G = this.a; } const st = this.A.start[this.role]; Object.assign(this.a, {x: st[0], y: st[1], sit: 0}); this.toast("Everything's back in place."); } }
+    const done = (R.done || {})[this.ai] || {}, n = this.A.pranks.filter(p => done[p.id]).length; this.w.querySelector("[data-cnt]").textContent = `${n} of ${this.A.pranks.length} pranks`;
     if(this.host && this.world) for(const id in done) this.world.done[id] = true;
     if(!this.w.querySelector(".sheet").classList.contains("hidden") && this.sheetMode === "list") this.sheet(true); }
 
@@ -1368,15 +1994,18 @@ class Play {
     if(this.dead || this.w.querySelector(".done-card")) return; SFX.big(); const ai = this.ai, last = ai >= AREAS.length - 1, g = galleryHTML(ai);
     const c = el(`<div class="done-card"><div class="card center"><h2>${esc(this.A.name)} wrecked!</h2><p>All ${this.A.pranks.length} pranks done.</p>
       ${g || `<p class="muted">No photobombs in this area.</p>`}
-      <button class="btn" data-n>${last ? "See the ending" : "Next: " + esc(AREAS[ai + 1].name)}</button></div></div>`);
+      <button class="btn" data-n>${last ? "Steal a jeep and escape!" : "Next: " + esc(AREAS[ai + 1].name)}</button></div></div>`);
     c.querySelector("[data-n]").onclick = e => { e.target.disabled = true; e.target.textContent = "Loading…";
-      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(last) cur.phase = "won"; else cur.area = ai + 1; }).catch(() => { e.target.disabled = false; e.target.textContent = "Try again"; }); };
+      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(last) cur.phase = "jeep"; else cur.area = ai + 1; }).catch(() => { e.target.disabled = false; e.target.textContent = "Try again"; }); };
     this.w.append(c);
   }
   menu(){
     const sh = this.w.querySelector(".sheet"); this.sheetMode = "menu";
-    sh.innerHTML = `<div class="sheet-in"><h2>Paused?</h2><p class="muted">Game code <b>${S.code}</b>. Progress saves automatically. Rejoin anytime with this code and your name.</p><div class="sndpanel">${soundPanelHTML()}</div><button class="btn" data-x>Keep playing</button><button class="btn ghost" data-l>Leave game</button></div>`;
+    sh.innerHTML = `<div class="sheet-in"><h2>Paused?</h2><p class="muted">Game code <b>${S.code}</b>. Progress saves automatically. Rejoin anytime with this code and your name.</p><div class="sndpanel">${soundPanelHTML()}</div><button class="btn" data-x>Keep playing</button><button class="btn ghost" data-l>Leave game</button><button class="btn ghost" data-reset>↺ Reset objects (keeps your pranks)</button><button class="btn ghost" data-skip>⏭ Skip this area</button></div>`;
     sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden"); sh.querySelector("[data-l]").onclick = leave;
+    sh.querySelector("[data-reset]").onclick = () => { if(!confirm("Put every object and person back where they started? Finished pranks stay finished.")) return; sh.classList.add("hidden"); api.update(rid(S.code), {reset: {a: this.ai, t: Date.now()}}).catch(() => {}); };
+    sh.querySelector("[data-skip]").onclick = () => { const ai = this.ai, last = ai >= AREAS.length - 1; if(!confirm(last ? "Skip to the jeep escape?" : `Skip ${this.A.name} and go to ${AREAS[ai + 1].name}?`)) return; sh.classList.add("hidden");
+      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(last) cur.phase = "jeep"; else cur.area = ai + 1; }).catch(() => {}); };
     bindSoundPanel(sh, (k, on) => { if(k === "music" && on) MUSIC.play(this.ai % TUNES.length); if(k === "amb" && on) AMB.play(this.A.amb); });
   }
 }
