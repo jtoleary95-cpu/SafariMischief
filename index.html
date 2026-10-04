@@ -1124,12 +1124,22 @@ function homeScreen(){
   nm.value = localStorage.getItem("safari_name") || "";
   const qs = new URLSearchParams(location.search).get("g"); if(qs) cd.value = qs.toUpperCase();
   const name = () => { const n = nm.value.trim(); if(!n){ err.textContent = "Enter your name first."; return null; } if(!isCleanText(n)){ err.textContent = "Pick a different name."; return null; } localStorage.setItem("safari_name", n); return n; };
-  w.querySelector("[data-a=make]").onclick = async () => { const n = name(); if(!n) return; ac(); err.textContent = "Creating…";
+  const makeGame = async (startArea = 0, test = false) => { const n = name(); if(!n) return; ac(); err.textContent = "Creating…";
     try{ const L = "ABCDEFGHJKMNPQRSTUVWXYZ"; let code;
       for(let i = 0; i < 12; i++){ code = [...Array(4)].map(() => L[rnd(L.length)]).join(""); if(!isClean(code)) continue; if(!(await api.get(rid(code)))) break; }
-      await api.update(rid(code), {created: Date.now(), phase: "lobby", "players/p1": {name: n}, area: 0});
+      await api.update(rid(code), {created: Date.now(), phase: "lobby", "players/p1": {name: n}, area: startArea, test: test ? 1 : null});
       S = {code, pid: "p1", name: n}; saveS(); connect();
     }catch(e){ err.textContent = "Couldn't connect: " + (e.code || e.message); } };
+  w.querySelector("[data-a=make]").onclick = () => makeGame(0);
+  // hidden test menu: tap the title 5 times within 3 seconds
+  let taps = [];
+  w.querySelector(".logo").onclick = () => { const now = Date.now(); taps = taps.filter(t => now - t < 3000); taps.push(now); if(taps.length < 5) return; taps = [];
+    const sh = w.querySelector(".sheet");
+    sh.innerHTML = `<div class="sheet-in"><h2>🧪 Test menu</h2><p class="muted small">Start a test game at any area. Your partner joins with the code as usual. Enter your name on the main screen first.</p>
+      <div class="tests">${AREAS.map((a, i) => `<button class="btn alt" data-t="${i}">${i + 1}. ${esc(a.name)}</button>`).join("")}
+      <button class="btn ghost" disabled>🚙 Jeep escape (built with the final zone)</button></div><button class="btn" data-x>Close</button></div>`;
+    sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden");
+    sh.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { sh.classList.add("hidden"); makeGame(+b.dataset.t, true); }); };
   w.querySelector("[data-a=join]").onclick = async () => { const n = name(); if(!n) return; ac(); const code = cd.value.trim().toUpperCase(); if(code.length !== 4){ err.textContent = "Enter the 4-letter code."; return; }
     err.textContent = "Joining…";
     try{ const g = await api.get(rid(code)); if(!g){ err.textContent = "No game with that code."; return; }
