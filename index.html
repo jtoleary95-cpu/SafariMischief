@@ -68,6 +68,8 @@ const FIREBASE_CONFIG = {
 // Local test mode (two tabs, no Firebase): add ?local to the address.
 const LOCAL = new URLSearchParams(location.search).has("local");
 const COLL = "mgames";
+const DB_URL = "https://battle-ship-7f0d9-default-rtdb.firebaseio.com";
+const isLive = c => /_(p_p\d|w)$/.test(c);  // animal positions + lodge state: constant updates go to Realtime Database
 const BAD=["CUM","DIC","COC","PUS","KOC","WHR","FAP","JAP","SPIC","SPC","CHNK","GOOK","GK","HOMO","HMO","TRAN","LES","LEZ","QUER","DYKE","KUM","JIZ","JZZ","SEX","SXY","SX","XXX","FUK","FUC","FUQ","FUX","FCK","FK","FKU","PHUK","CUNT","CNT","KUNT","COCK","COK","KOK","CCK","DIK","DICK","DCK","DIX","DYK","PUSS","PUSY","PSY","PSSY","TIT","TT","TWAT","TWT","VAG","VAJ","VJ","BJ","HJ","ANAL","ANL","ANUS","ASS","AZZ","BUTT","BUT","BUM","BUTTH","BOOB","BOB","NUT","NUTS","PORN","PRN","PORNO","HORNY","HRNY","HUMP","SLUT","SLT","WHORE","WHOR","HOE","HO","THOT","SUCK","SUK","SUCC","LICK","LCK","BLOW","BJOB","CLIT","CLT","PENIS","PENI","PNS","PEN","WANK","WNK","JERK","JRK","NUDE","NUD","FAG","FAGG","FGT","GAY","NIG","NIGG","NGR","NGGR","NGA","KKK","KK","NAZI","NAZ","NZ","HITLR","SHIT","SHT","SHT","CRAP","CRP","PISS","PIS","PSS","PEE","POO","POOP","TURD","DAMN","DMN","DAM","HELL","HEL","BTCH","BICH","BCH","BITCH","DUMB","STFU","WTF","FML","FU","KYS","DIE","KILL","RAPE","RAP","RAPY","MOLEST","PEDO","PED","CHILD","DRUG","METH","LSD","WEED","HMP","MILF","MLF","GILF","DILF","BDSM","BDS","KINK","NSFW","HENT","HNTY","XXL","SEXY","SEXI"];
 const BAD_ROOTS = ["FUCK", "SHIT", "CUNT", "NIGG", "FAGGOT", "WHORE", "PUSSY", "BITCH", "DILDO", "JIZZ", "MOLEST", "PORNO", "HITLER", "NAZI"];
 const BAD_WORDS = new Set(["ASS", "ASSES", "ASSHOLE", "ARSE", "DICK", "DICKS", "COCK", "COCKS", "CUM", "TIT", "TITS", "TITTY", "BOOB", "BOOBS", "PENIS", "VAGINA", "SEX", "SEXY", "PORN", "SLUT", "SLUTS", "HOE", "HOES", "THOT", "FAG", "FAGS", "NIGGER", "NIGGA", "KKK", "RAPE", "RAPED", "RAPIST", "WTF", "FML", "KYS", "JIZZ", "WHORE", "TWAT", "WANK", "WANKER", "PISS", "CRAP", "DAMN", "SHAT", "NAZI", "SPIC", "CHINK", "GOOK", "DYKE", "JAP", "RETARD", "TRANNY", "DILDO", "ANAL", "ANUS", "SCROTUM", "BOLLOCKS", "PRICK", "BASTARD", "SPERM", "NUDE", "NUDES", "MILF", "BDSM", "STFU", "GTFO"]);
@@ -113,22 +115,29 @@ const onlineApi = LOCAL ? (() => {
     async syncClock(){}
   };
 })() : (() => {
-  let F, fs, offset = 0;
+  let F, fs, offset = 0, fa, RT = null, rdb = null;
   const ready = (async () => {
     const V = "https://www.gstatic.com/firebasejs/10.12.2/";
     const [A, U, D] = await Promise.all([import(V + "firebase-app.js"), import(V + "firebase-auth.js"), import(V + "firebase-firestore.js")]);
-    const fa = A.initializeApp(FIREBASE_CONFIG), auth = U.getAuth(fa);
+    fa = A.initializeApp(FIREBASE_CONFIG); const auth = U.getAuth(fa);
     await U.signInAnonymously(auth);
     F = D; fs = D.getFirestore(fa);
   })();
   const ref = c => F.doc(fs, COLL, c);
+  // Realtime Database for the constant updates; if it isn't set up, fall back to Firestore
+  const rtReady = ready.then(async () => { try{ const M = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"); rdb = M.getDatabase(fa, DB_URL); RT = M; }catch(e){ console.warn("Realtime Database unavailable, using Firestore", e); } });
+  const rref = c => RT.ref(rdb, "live/" + c);
   return {
     ready,
     listen(c, cb){ let off = () => {}, dead = false;
+      if(isLive(c)){ rtReady.then(() => { if(dead) return; if(RT){ off = RT.onValue(rref(c), s => cb(s.val()), () => {}); return; }
+        off = F.onSnapshot(ref(c), s => { if(!s.exists() && s.metadata.fromCache) return; cb(s.exists() ? s.data() : null); }, () => {}); }); return () => { dead = true; off(); }; }
       ready.then(() => { if(dead) return; off = F.onSnapshot(ref(c), s => { if(!s.exists() && s.metadata.fromCache) return; cb(s.exists() ? s.data() : null); }, () => {}); });
       return () => { dead = true; off(); }; },
     async get(c){ await ready; const s = await F.getDoc(ref(c)); return s.exists() ? s.data() : null; },
-    async update(c, patch){ await ready; const p = {}; for(const k in patch){ const v = patch[k]; p[k.replace(/\//g, ".")] = v === undefined ? null : (v && typeof v === "object") ? JSON.parse(JSON.stringify(v)) : v; }
+    async update(c, patch){ await ready;
+      if(isLive(c)){ await rtReady; if(RT) return RT.update(rref(c), JSON.parse(JSON.stringify(patch, (k, v) => v === undefined ? null : v))); }
+      const p = {}; for(const k in patch){ const v = patch[k]; p[k.replace(/\//g, ".")] = v === undefined ? null : (v && typeof v === "object") ? JSON.parse(JSON.stringify(v)) : v; }
       try{ return await F.updateDoc(ref(c), p); }
       catch(e){ if(e?.code !== "not-found") throw e; const v = {}; for(const k in patch) setPath(v, k, patch[k]); return F.setDoc(ref(c), prune(v) || {}, {merge: true}); } },
     async tx(c, mut){ await ready;
