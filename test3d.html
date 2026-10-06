@@ -236,8 +236,8 @@ const SFX = {
   shoo(){ osc("jingle", 500, .3, "sawtooth", .06, {to: 150}); },
   pen(){ [300, 250, 200].forEach((f, i) => osc("jingle", f, .2, "square", .07, {at: (ac()?.currentTime || 0) + i * .16})); },
   camera(){ noise("amb", .05, .4, {f: 4000, q: .5}); osc("amb", 1800, .06, "square", .03); },
-  step(role){ if(role === "H"){ osc("steps", 70, .16, "sine", .35, {to: 45}); noise("steps", .1, .12, {f: 200, type: "lowpass"}); }
-    else { noise("steps", .05, .3, {f: 2200, q: 6}); setTimeout(() => noise("steps", .05, .22, {f: 1800, q: 6}), 70); } },
+  step(role, soft){ const v = soft ? .4 : 1; if(role === "H"){ osc("steps", 70, soft ? .22 : .16, "sine", .35 * v, {to: 45}); noise("steps", .1, .12 * v, {f: 200, type: "lowpass"}); }
+    else { noise("steps", .05, .3 * v, {f: 2200, q: 6}); setTimeout(() => noise("steps", .05, .22 * v, {f: 1800, q: 6}), soft ? 160 : 70); } },
   /* people: wobbly cartoon voices */
   hey(p = 1){ osc("people", 260 * p, .28, "sawtooth", .12, {to: 340 * p, bp: 900, bpTo: 1700, q: 5, vib: 8, vibd: 15}); },
   gasp(p = 1){ noise("people", .35, .3, {f: 1400 * p, fTo: 2600 * p, q: 3, atk: .2}); },
@@ -392,9 +392,9 @@ const visiblePranks = (A, d) => A.pranks.filter(p => !p.unlock || revealed(A, d)
 area({
   name: "Entrance & Gift Shop", ground: PAL.grass, amb: "lobby", unlock: "keys", unlockAt: 5,
   start: {G: [410, 1120], H: [490, 1120]}, entrance: [450, 1140],
-  pen: {r: [730, 1040, 140, 140], gate: "gate"},
+  pen: {r: [730, 1040, 170, 160], gate: "gate"},
   walls: [RC(60, 60, 780, 18), RC(60, 60, 18, 420), RC(822, 60, 18, 420), RC(60, 462, 330, 18), RC(510, 462, 330, 18), RC(600, 78, 18, 222), RC(600, 300, 140, 18),
-    RC(722, 1040, 8, 140), RC(730, 1032, 140, 8)],
+    RC(722, 1032, 8, 43), RC(722, 1145, 8, 55), RC(722, 1032, 178, 8)],
   doors: [{id: "front", r: [390, 462, 120, 18], flag: "lodgeOpen"}],
   floors: [{r: [78, 78, 744, 384], c: "#E2C49A"}, {r: [618, 78, 204, 222], c: "#C9BFAF"}, {r: [390, 480, 120, 720], c: PAL.path}, {r: [300, 640, 300, 250], c: "#E9D7B0"}],
   water: [[130, 760, 170, 130, "water"], [640, 900, 170, 110, "mud"]],
@@ -421,23 +421,25 @@ area({
     {id: "hat1", m: "sunhat", x: 130, y: 112, high: true, own: "keeper", hy: 48}, {id: "hat2", m: "tophat", x: 190, y: 112, high: true, own: "keeper", hy: 48},
     {id: "hat3", m: "cowboy", x: 250, y: 112, high: true, own: "keeper", hy: 48},
     {id: "rack", m: "rack", x: 470, y: 200, heavy: true, r: 22},
-    {id: "crate", m: "crate", x: 660, y: 340, heavy: true, r: 22},
+    {id: "crate", m: "crate", x: 660, y: 350, heavy: true, r: 36, scale: 1.65},
     {id: "lcart", m: "lcart", x: 250, y: 410, heavy: true, r: 26},
     {id: "tipjar", m: "tipjar", x: 520, y: 340, high: true, own: "clerk", hy: 42},
     {id: "pail", m: "pail", x: 700, y: 870, drag: true, liftBy: "G", highDrop: true, r: 14},
     {id: "plush", m: "plush", on: "t2", snatch: true, own: "t2"},
     {id: "keys", m: "keys", x: 565, y: 298, high: true, own: "clerk", hy: 58},
+    {id: "tag", m: "tag", x: 250, y: 410, hidden: true, own: "bell", r: 8},
+    {id: "flower1", m: "flower", x: 640, y: 690, r: 8}, {id: "flower2", m: "flower", x: 210, y: 690, r: 8},
     {id: "bag1", m: "suitcase", x: 210, y: 930}, {id: "bag2", m: "backpack", x: 285, y: 940},
   ],
   npcs: [
-    {id: "clerk", look: "clerk", x: 450, y: 292, beh: "post", face: Math.PI / 2, staff: true, name: "Clerk"},
-    {id: "keeper", look: "shop", x: 300, y: 190, beh: "wander", rad: 110, staff: true, name: "Shopkeeper", notice: 650},
-    {id: "bell", look: "bellhop", x: 450, y: 506, beh: "post", face: Math.PI / 2, staff: true, name: "Bellhop",
+    {id: "clerk", look: "clerk", x: 450, y: 292, beh: "post", face: Math.PI / 2, staff: true, name: "Clerk", hints: [{p: "bell", t: "One ring is plenty. Keep ringing and I WILL come out there."}, {p: "mud", t: "Tips go in the jar, thank you! I check it every time I sit down."}, {p: "keys", t: "Room keys stay on that hook. Away from the fountain!"}]},
+    {id: "keeper", look: "shop", x: 300, y: 190, beh: "wander", rad: 110, staff: true, name: "Shopkeeper", notice: 650, hints: [{p: "lock", t: "If I see my stock lying around, I fetch it. Even from the stockroom."}, {p: "lock", t: "That stockroom door doesn't lock. Never needed to."}]},
+    {id: "bell", look: "bellhop", x: 450, y: 506, beh: "post", face: Math.PI / 2, staff: true, name: "Bellhop", hints: [{p: "inside", t: "Those bags by the fountain had better stay DRY."}, {p: "inside", t: "One splash on that luggage and I'm finished."}, {p: "cap", t: "Phew. I always stop at the cart to wipe my brow."}, {p: "tags", t: "Every bag has its tag. Mix them up and it's chaos."}, {p: "tags", t: "Cart goes up in the lift and I deliver whatever the tags say."}],
       route: [[250, 362, 5], [620, 410, 1.5], [450, 420, 1]]},
-    {id: "guide", look: "guide", x: 720, y: 700, beh: "wander", rad: 50, name: "Tour guide"},
+    {id: "guide", look: "guide", x: 720, y: 700, beh: "wander", rad: 50, name: "Tour guide", hints: [{p: "photo", t: "Group photo soon! Listen for my whistle."}]},
     {id: "t1", look: "tourist1", x: 580, y: 800, beh: "wander", rad: 60}, {id: "t2", look: "tourist2", x: 640, y: 760, beh: "wander", rad: 60},
     {id: "t3", look: "tourist3", x: 700, y: 820, beh: "wander", rad: 60, grumpy: true},
-    {id: "photog", look: "photog", x: 450, y: 965, beh: "post", face: -Math.PI / 2, name: "Photographer"},
+    {id: "photog", look: "photog", x: 450, y: 965, beh: "post", face: -Math.PI / 2, name: "Photographer", hints: [{p: "photo", t: "For the photo, everyone sits nice and still in front of the sign."}]},
     {id: "g1", look: "guest1", x: 122, y: 360, beh: "sit", face: 0}, {id: "g2", look: "guest2", x: 122, y: 430, beh: "sit", face: 0},
   ],
   hooks: {
@@ -447,6 +449,7 @@ area({
         {wait: 1.5}, {go: [450, 520]}, {go: [450, 430]}, {do: (W2, n) => { n.beh = "route"; n.wp = 0; }}, {st: "route"}]);
     },
     use(W, id, role){
+      if(id === "tags" && !W.flag.tagOff && !W.flag.tagsSwapped){ const tg = W.o("tag"), cart = W.o("lcart"); W.set("tagOff"); tg.gone = false; tg.x = cart.x; tg.y = cart.y; tg.holder = role; W.f("tags").n = 0; W.emit("grab", {who: role, obj: "tag"}); return; }
       if(id === "deskbell"){ W.cnt.rings = (W.cnt.rings || 0) + 1; const c = W.npc("clerk");
         if(W.cnt.rings >= 6 && c.st !== "script"){ W.cnt.rings = 0; W.set("stormed");
           W.script("clerk", [{say: "WHAT?! WHO IS RINGING?!", s: "hey"}, {go: [450, 420]}, {emote: "💢"}, {wait: 1.5, spin: 1}, {go: [270, 440]}, {say: "Hello?!", s: "hey"},
@@ -454,7 +457,10 @@ area({
       if(id === "sign" && W.uses("sign") === 3) tourists(W).forEach((n, i) => W.script(n.id, [{wait: i * .7}, {go: [400 + i * 50, 760]}, {face: -Math.PI / 2},
         {say: ["We ♥ hippos?", "Ha! Love it.", "Is that a typo?"][i], s: "laugh"}, {wait: 2}]));
     },
-    drop(W, id){ if(!/^hat/.test(id)) return; const o = W.o(id); const t = tourists(W).find(n => Math.hypot(n.x - o.x, n.y - o.y) < 60 && !W.flag["hat_" + n.id]);
+    home(W, id){ if(id === "tag" && !W.flag.tagsSwapped){ const tg = W.o("tag"); tg.gone = true; W.flag.tagOff = 0; } },
+    drop(W, id){
+      if(id === "tag" && !W.flag.tagsSwapped){ const tg = W.o("tag"), cart = W.o("lcart"); if(Math.hypot(tg.x - cart.x, tg.y - cart.y) < 75){ tg.gone = true; W.set("tagsSwapped"); W.f("tags").n = 1; W.fx("poof", cart.x, cart.y); } return; }
+      if(!/^hat/.test(id)) return; const o = W.o(id); const t = tourists(W).find(n => Math.hypot(n.x - o.x, n.y - o.y) < 60 && !W.flag["hat_" + n.id]);
       if(t){ W.flag["hat_" + t.id] = 1; o.holder = t.id; o.worn = ""; o.fixed = true; o.stay = true; W.cnt.hatted = (W.cnt.hatted || 0) + 1; W.say(t.id, ["Ooh, a free hat!", "Is this… mine now?", "Hey! Who threw this?"][W.cnt.hatted % 3], 2, "laugh"); } },
     noise(W, role){ if(role !== "H" || W.flag.bagsFlew) return; const t1 = W.npc("t1"); if(!W.near("H", "t1", 150)) return; W.set("bagsFlew");
       [["bag1", -150, 60], ["bag2", 160, 50]].forEach(([id, dx, dy]) => { const o = W.o(id); if(o.holder) return; W.move(id, clamp(o.x + dx, 30, AW - 30), clamp(o.y + dy, 30, AH - 30)); W.fx("poof", o.x, o.y); });
@@ -465,6 +471,10 @@ area({
       // the bellhop stops at the cart to wipe his brow: the only time his cap is unguarded
       const b = W.npc("bell"), wiping = b.st === "route" && b.wp % 3 === 0 && Math.hypot(b.x - 250, b.y - 362) < 16;
       W.flag.wipe = wiping ? 1 : 0; if(wiping && !b.emo) W.emote("bell", "😓", 1);
+      // a crate in the doorway seals it: nobody squeezes past
+      if(W.inZ("crate", "stockDoor")) for(const n of ["keeper", "bell", "clerk"]){ const m = W.npc(n); if(m) pushOutRect(m, 14, [736, 290, 90, 34]); }
+      // the tag rides home with the cart
+      const tag = W.o("tag"); if(tag) tag.home = [cart.x, cart.y];
       // the shopkeeper's muffled complaints
       if(W.flag.trapped && Math.floor(W.t) % 6 === 0 && !W.npc("keeper").bub) W.say("keeper", ["Let me out!", "Hello? HELLO?", "Who put a crate here?!"][Math.floor(W.t / 6) % 3], 2, "hey");
       // the rack rolls down the hill (off-list)
@@ -487,7 +497,7 @@ area({
     {id: "bell", text: "Ring the check-in bell until the clerk storms out", who: "H", check: W => W.flag.stormed},
     {id: "mud", text: "Swap the tip jar for a pail of mud", who: "B", check: W => { const m = W.o("pail"); return W.inZ("pail", "desktop") && m.high && !m.holder && !W.inZ("tipjar", "desktop"); }, keep: ["pail", "tipjar"],
       after: W => W.script("clerk", [{wait: 3}, {go: [470, 300]}, {say: "Ooh, tips!", s: "laugh"}, {wait: 1}, {say: "…MUD?!", s: "scream"}, {emote: "🤢", t: 3}, {wait: 2}, {go: [450, 292]}, {face: Math.PI / 2}])},
-    {id: "tags", text: "Swap the luggage tags", who: "B", big: true, check: W => W.used("tags") && W.inZ("lcart", "lift"), keep: ["lcart"],
+    {id: "tags", text: "Swap the luggage tags", who: "B", big: true, check: W => W.flag.tagsSwapped && W.inZ("lcart", "lift"), keep: ["lcart"],
       after: W => { W.script("bell", [{say: "Deliveries!", s: "laugh"}, {go: [700, 400]}, {go: [150, 360]}, {say: "Room 101!"}, {wait: 1}, {go: [150, 430]}, {say: "Room 102!"}, {go: [450, 420]}, {do: (W2, n) => { n.wp = 0; }}, {st: "route"}]);
         W.script("g1", [{wait: 7}, {say: "This isn't my bag!", s: "gasp"}, {go: [300, 440]}, {say: "Who owns a snorkel this size?!", s: "hey"}, {wait: 1}, {go: [420, 410]}, {say: "I want to speak to a manager!", s: "grumble"}, {wait: 3}, {go: [122, 360]}, {st: "sit"}]);
         W.script("g2", [{wait: 9}, {say: "Why do I have a tiny sun hat?", s: "hey"}, {go: [330, 445]}, {say: "That's MY snorkel!", s: "grumble"}, {wait: 4}, {go: [122, 430]}, {st: "sit"}]);
@@ -1445,13 +1455,21 @@ class World {
   /* ---- player actions ---- */
   grab(role){
     const a = this.P[role]; if(!a || this.flag["pen_" + role]) { if(a && this.flag["pen_" + role]) this.gateTry(role); return; }
-    const h = this.held(role); if(h){ this.drop(role); return; }
+    const other = role === "G" ? "H" : "G", hpos = headPos(role, a), pb = this.P[other];
+    const h = this.held(role);
+    if(h && pb && !this.flag["pen_" + other]){ // put it on your partner
+      const isHat = /cap|hat|cowboy/.test(h.m || ""), isFlower = h.m === "flower";
+      if(role === "G" && isHat && Math.hypot(hpos.x - pb.x, hpos.y - pb.y) < 46){ h.holder = ""; h.worn = "H"; h.gift = 1; h.stay = true; this.emit("wear", {who: "H", obj: h.id}); this.emit("say", {obj: "", s: "laugh"}); return; }
+      if(role === "H" && isFlower && pb.sit){ const gh = headPos("G", pb); if(Math.hypot(hpos.x - gh.x, hpos.y - gh.y) < 44){ h.holder = ""; h.worn = "G"; h.gift = 1; h.stay = true; this.emit("wear", {who: "G", obj: h.id}); return; } }
+    }
+    if(h){ this.drop(role); return; }
+    if(pb){ const og = this.objs.find(o => o.worn === other && o.gift); if(og && Math.hypot(hpos.x - pb.x, hpos.y - pb.y) < 50){ og.worn = ""; og.gift = 0; og.stay = false; og.holder = role; this.emit("grab", {who: role, obj: og.id}); return; } }
     const hp = headPos(role, a), reach = role === "G" && a.s; let best = null, bd = 1e9, isFix = false;
     for(const o of this.objs){ if(o.gone || o.heavy || o.worn || o.fixed) continue; if(o.drag && role !== "H" && o.liftBy !== role) continue; if(o.holder && !(o.snatch && this.npc(o.holder))) continue; if(o.high && !reach) continue;
       const d = Math.hypot(o.x - hp.x, o.y - hp.y); if(d < 40 + o.r && d < bd){ bd = d; best = o; isFix = false; } }
     for(const f of this.fix){ if(f.high && !reach) continue; if(f.only && f.only !== role) continue;
       const d = Math.hypot(f.x - hp.x, f.y - hp.y); if(d < 44 + f.r && d < bd){ bd = d; best = f; isFix = true; } }
-    if(!best) return;
+    if(!best){ const mine = this.objs.find(o => o.worn === role && o.gift); if(mine){ mine.worn = ""; mine.gift = 0; mine.stay = false; mine.holder = role; this.emit("grab", {who: role, obj: mine.id}); } return; }
     if(isFix){ best.n++; this.emit("use", {who: role, obj: best.id}); if(best.id === this.A.pen?.gate) this.gateTry(role); this.A.hooks?.use?.(this.W, best.id, role); return; }
     if(best.wear && (!best.wearBy || best.wearBy === role)){ best.worn = role; this.emit("wear", {who: role, obj: best.id}); this.A.hooks?.grab?.(this.W, best.id, role); return; }
     const from = this.npc(best.holder); if(from && best.guard && !this.flag[best.guard] && this.facing(from, a)){ this.say(from.id, "Hands off!", 1.6, "hey"); this.emote(from.id, "😠", 1.5); this.chase(from, role, "scene"); return; }
@@ -1554,6 +1572,11 @@ class World {
     if(n.startle && this.t < n.startle){ n.dir += dt * 4; return; }
     if(n.pend && this.t >= n.pend.at){ const p = n.pend; n.pend = null; if(this.held(p.who)?.id === p.obj) this.chase(n, p.who, "item"); } // you felt that snatch: they come after you
     if(n.bub && this.t > n.bub.until) n.bub = null; if(n.emo && this.t > n.emo.until) n.emo = null;
+    if(n.hints && !n.bub && ["post", "wander", "route", "sit"].includes(n.st)){ n.ht = (n.ht ?? 5 + Math.random() * 5) - dt;
+      if(n.ht <= 0){ n.ht = 13 + Math.random() * 8; const near = ["G", "H"].some(r => this.P[r] && !this.flag["pen_" + r] && Math.hypot(this.P[r].x - n.x, this.P[r].y - n.y) < 280);
+        if(near){ const nDone = this.A.pranks.filter(q => !q.unlock && this.done[q.id]).length;
+          const opts = n.hints.filter(h => !this.done[h.p] && !(this.A.pranks.find(q => q.id === h.p)?.unlock && nDone < (this.A.unlockAt || 0)));
+          if(opts.length){ n.hk = ((n.hk ?? -1) + 1) % opts.length; this.say(n.id, opts[n.hk].t, 4); } } } }
     if(["busy", "photo"].includes(n.st)){ if(n.st === "photo"){ n.timer -= dt; if(n.timer <= 0){ n.timer = n.every || 4; this.photo(n); } } return; }
     if(["post", "wander", "route", "investigate", "sit"].includes(n.st)){
       n.vt -= dt; if(n.vt <= 0){ n.vt = .25;
@@ -1602,7 +1625,7 @@ class World {
     if(s.face !== undefined){ n.dir = s.face; next(); return; }
     if(s.take){ const o = this.o(s.take); if(o && !o.gone){ if(o.holder === "G" || o.holder === "H") this.emit("taken", {who: o.holder, obj: o.id}); o.holder = n.id; o.worn = ""; } next(); return; }
     if(s.put){ const o = this.objs.find(o => o.holder === n.id); if(o){ o.holder = ""; o.x = s.put[0]; o.y = s.put[1]; } next(); return; }
-    if(s.home){ const o = this.o(s.home); if(o && o.homeOn){ o.holder = o.homeOn; o.worn = ""; } else if(o){ o.holder = ""; o.worn = ""; o.x = o.home[0]; o.y = o.home[1]; o.high = (this.A.objs.find(q => q.id === o.id) || {}).high; } next(); return; }
+    if(s.home){ const o = this.o(s.home); if(o && o.homeOn){ o.holder = o.homeOn; o.worn = ""; } else if(o){ o.holder = ""; o.worn = ""; o.x = o.home[0]; o.y = o.home[1]; o.high = (this.A.objs.find(q => q.id === o.id) || {}).high; } if(o) this.A.hooks?.home?.(this.W, o.id); next(); return; }
     if(s.photo){ this.photo(n, s.photo); next(); return; }
     if(s.set){ this.flag[s.set] = s.v ?? 1; next(); return; }
     if(s.do){ try{ s.do(this.W, n); }catch(e){ console.warn(e); } next(); return; }
@@ -1612,8 +1635,8 @@ class World {
   caught(n, role){ // they take it back; a second catch within a minute means the pen
     const a = this.P[role]; const dx = a.x - n.x, dy = a.y - n.y, d = Math.hypot(dx, dy) || 1;
     this.immune[role] = this.t + 2.5; n.grudge[role]++;
-    this.catches[role] = this.catches[role].filter(t => this.t - t < 60); this.catches[role].push(this.t);
-    const o = this.held(role), pen = this.A.pen && this.catches[role].length >= 2;
+    this.catches[role] = this.catches[role].filter(t => this.t - t < 60); if(n.staff) this.catches[role].push(this.t);
+    const o = this.held(role), pen = this.A.pen && n.staff && this.catches[role].length >= 2;
     this.emit("bonk", {who: role, x: dx / d, y: dy / d, obj: n.id});
     if(o){ o.holder = n.id; o.worn = ""; this.emit("taken", {who: role, obj: o.id});
       if(o.homeOn === n.id){ this.say(n.id, "That's MINE.", 1.6, "grumble"); }
@@ -1623,6 +1646,25 @@ class World {
     if(pen){ this.flag["pen_" + role] = 1; this.emit("pen", {who: role}); if(!o || o.homeOn === n.id){ n.st = n.beh === "sit" ? "post" : n.beh; n.path = null; } this.say(n.id, "Into the pen with you!", 2, "hey"); }
     else { if(!o) this.say(n.id, "Shoo! Out!", 1.6, "hey"); if(!o || o.homeOn === n.id){ n.st = n.beh === "sit" ? "post" : n.beh; n.path = null; } }
   }
+
+  /* ---- save / restore the world so a refresh doesn't undo anything ---- */
+  save(){ const r1 = v => Math.round(v), skip = /^(pen_|lining$|wipe$)/;
+    const o = {}; for(const x of this.objs) o[x.id] = [r1(x.x), r1(x.y), x.holder || "", x.gone ? 1 : 0, x.worn || "", x.high ? 1 : 0, x.fixed ? 1 : 0, x.stay ? 1 : 0, x.gift ? 1 : 0];
+    const n = {}; for(const x of this.npcs) n[x.id] = [r1(x.x), r1(x.y), x.st === "busy" ? "busy" : "", x.beh, Math.round(x.dir * 100)];
+    const fx = {}; for(const f of this.fix) if(f.n) fx[f.id] = f.n;
+    const f = {}; for(const k in this.flag) if(!skip.test(k) && this.flag[k]) f[k] = this.flag[k];
+    const c = Object.assign({}, this.cnt); delete c.pt; return {o, n, fx, f, c}; }
+  restore(v){ if(!v) return;
+    for(const k in v.f || {}) this.flag[k] = v.f[k]; Object.assign(this.cnt, v.c || {});
+    for(const x of this.objs){ const q = v.o?.[x.id]; if(!q) continue; let [ox, oy, holder, gone, worn, high, fixed, stay, gift] = q;
+      if(holder === "G" || holder === "H") holder = x.homeOn || ""; // a refresh drops what you carried: worn things go back to their owner, the rest stays where you picked it up
+      if(holder && !this.npc(holder)) holder = "";
+      if(holder && holder !== x.homeOn && !fixed){ holder = x.homeOn || ""; if(!holder){ ox = x.home[0]; oy = x.home[1]; } }
+      Object.assign(x, {x: ox, y: oy, holder, gone: !!gone, worn: worn || "", high: !!high, fixed: !!fixed, stay: !!stay, gift: !!gift}); }
+    for(const x of this.npcs){ const q = v.n?.[x.id]; if(!q) continue; x.beh = q[3] || x.beh; x.dir = (q[4] || 0) / 100; x.path = null; x.script = null;
+      if(q[2] === "busy"){ x.x = q[0]; x.y = q[1]; x.st = "busy"; } else x.st = x.beh; }
+    for(const f of this.fix) f.n = v.fx?.[f.id] || 0;
+    applyDoors(this.A, this.flag); this.G = buildGrid(this.A); }
 
   /* ---- what the partner's phone needs to draw ---- */
   snap(){
@@ -1915,6 +1957,8 @@ function strHash(s){ let h = 0; for(const ch of String(s)) h = (h * 31 + ch.char
 
 /* ---- props ---- */
 const PROPS = {
+  tag(){ return G3(P3(B3(7, 1, 5, "#FFF59D"), 0, 3, 0), P3(C3(.8, .8, 1.4, "#5D4037", 6), -2.5, 3.8, 0), P3(B3(.4, .4, 6, "#9E9E9E"), -2.5, 4, -3)); },
+  flower(){ const g = G3(P3(C3(.6, .6, 9, "#43A047", 5), 0, 4.5, 0)); for(let k = 0; k < 6; k++){ const a = k / 6 * 6.283; g.add(P3(SC3(S3(2.2, "#F48FB1", 6, 4), 1, .5, 1), Math.cos(a) * 2.6, 9.5, Math.sin(a) * 2.6)); } g.add(P3(S3(1.6, "#FFD54F", 6, 4), 0, 10, 0)); g.add(P3(SC3(S3(1.8, "#66BB6A", 5, 3), 1.4, .4, .7), 1.8, 5, 0)); return g; },
   bellcap(){ return G3(P3(C3(6.5, 7, 6, "#C62828", 12), 0, 3, 0), P3(C3(7.2, 7.2, 1.6, "#FFC107", 12), 0, 1.2, 0), P3(SC3(C3(4, 4, 1, "#1A1A1A", 10), 1, 1, .6), 6, .8, 0)); },
   sunhat(){ return G3(P3(C3(14, 14, 1.4, "#F2D598", 14), 0, .7, 0), P3(C3(6.5, 7.5, 6, "#EFCB80", 12), 0, 4, 0), P3(C3(7.6, 7.6, 1.6, "#E57373", 12), 0, 2, 0)); },
   tophat(){ return G3(P3(C3(11, 11, 1.4, "#212121", 14), 0, .7, 0), P3(C3(6.5, 6.5, 14, "#262626", 12), 0, 8, 0), P3(C3(6.7, 6.7, 2, "#8E24AA", 12), 0, 2.5, 0)); },
@@ -2127,7 +2171,7 @@ class R3 {
   }
   buildActors(){
     const A = this.A, S = this.s;
-    this.objM = {}; for(const o of A.objs){ const mk = PROPS[o.m]; const g = mk ? mk() : B3(14, 14, 14, "#FF00FF"); g.traverse(m => { if(m.isMesh) m.castShadow = true; }); g.userData.yaw = (strHash(o.id) % 628) / 100; S.add(g); this.objM[o.id] = g; }
+    this.objM = {}; for(const o of A.objs){ const mk = PROPS[o.m]; const g = mk ? mk() : B3(14, 14, 14, "#FF00FF"); g.traverse(m => { if(m.isMesh) m.castShadow = true; }); g.userData.yaw = (strHash(o.id) % 628) / 100; if(o.scale) g.scale.setScalar(o.scale); S.add(g); this.objM[o.id] = g; }
     this.npcM = {}; for(const n of A.npcs){ const h = human(n.look); S.add(h.g); this.npcM[n.id] = h; }
     this.an = {G: makeGinger(), H: makeHarriet()}; S.add(this.an.G.g); S.add(this.an.H.g);
     const blob = new THREE.Mesh(new THREE.CircleGeometry(1, 16), new THREE.MeshBasicMaterial({color: "#000", transparent: true, opacity: .0}));
@@ -2157,6 +2201,8 @@ class R3 {
     // fixtures
     for(const f of A.fix){ const g = this.fixM[f.id]; if(!g) continue; if(f.id === "tags"){ const o = p.objView().find(o => o.id === "lcart"); if(o){ g.position.set(o.x, 0, o.y); g.rotation.y = -(this.objM.lcart.rotation.y ? -this.objM.lcart.rotation.y : 0); }
         const n = p.fixN("tags"); g.children.forEach((c, k) => { c.rotation.x = Math.sin(t * 3 + k) * .2; c.material = m3(n ? ["#FFAB91", "#CE93D8", "#A5D6A7"][k] : ["#FFF59D", "#FFFFFF", "#B3E5FC"][k]); }); }
+      if(f.id === A.pen?.gate){ const shut = F.pen_G || F.pen_H; if(shut){ g.position.set(f.x, 0, f.y); g.rotation.y = 0; } else { g.position.set(f.x - 26, 0, f.y - 34); g.rotation.y = Math.PI / 2; } }
+      if(f.id === "tags" && g.children[0]) g.children[0].visible = !(F.tagOff && !F.tagsSwapped);
       if(f.label2 && g.userData.lab && !g.userData.swapped && p.fixN(f.id) >= (f.need || 1)){ g.userData.swapped = 1; const l = label3(f.label2, 50, 16, "#FFF8E1", "#AD1457"); l.position.copy(g.userData.lab.position); g.remove(g.userData.lab); g.add(l); } }
     // animals
     const pa = p.partnerPos(), states = {[p.role]: p.a}; if(pa) states[p.prole] = pa;
@@ -2210,7 +2256,7 @@ class R3 {
       const mp = this.mouthPos(o.holder, this.v);
       if(def.drag && o.holder === "H"){ g.position.set(mp.x, 0, mp.z); g.rotation.set(0, -a.d + Math.sin(t * 6) * .08, Math.sin(t * 9) * .05); return; }
       g.position.set(mp.x, mp.y - (def.m === "pail" ? 16 : 3), mp.z); g.rotation.set(0, -a.d, Math.sin(t * 7) * .06); return; }
-    if(o.worn === "G" || o.worn === "H"){ const m = this.an[o.worn]; m.g.updateMatrixWorld(true); const tp = m.top.getWorldPosition(this.v); g.position.copy(tp); g.rotation.y = m.g.rotation.y; return; }
+    if(o.worn === "G" || o.worn === "H"){ const m = this.an[o.worn]; m.g.updateMatrixWorld(true); const tp = m.top.getWorldPosition(this.v); g.position.copy(tp); g.rotation.y = m.g.rotation.y; if(def.m === "flower"){ g.translateZ(5); g.position.y -= 3; g.rotation.z = -.5; } return; }
     if(o.holder && npcById[o.holder]){ const h = this.npcM[o.holder]; h.g.updateMatrixWorld(true);
       if(hat && (def.on === o.holder || o.fixed)){ const hp = h.head.getWorldPosition(this.v); g.position.set(hp.x, hp.y + 5, hp.z); g.rotation.y = h.g.rotation.y; return; }
       const hp = h.armR.localToWorld(new THREE.Vector3(2, -20, 2)); g.position.copy(hp); g.position.y -= 4; g.rotation.y = h.g.rotation.y; return; }
@@ -2236,23 +2282,27 @@ class Play {
     this.cd = 0; this.chargeT = 0; this.kb = null; this.stun = 0; this.act = 0; this.seenE = 0; this.fx = []; this.t = 0; this.joy = {x: 0, y: 0};
     this.partner = null; this.pRecv = 0; this.pPrev = null; this.snapA = null; this.snapB = null; this.snapT = 0; this.wRecv = Date.now();
     this.host = S.pid === "p1";
-    if(this.host){ this.world = new World(this.ai, (R.done || {})[this.ai]); this.world.P.G = this.a; }
+    if(this.host){ this.world = new World(this.ai, (R.done || {})[this.ai]); this.world.P.G = this.a;
+      api.get(this.wsKey()).then(v => { if(this.dead) return; if(v && v.s){ try{ this.world.restore(JSON.parse(v.s)); }catch(e){ console.warn(e); } } this.wsReady = true; }).catch(() => { this.wsReady = true; }); }
     this.cv = w.querySelector("canvas"); if(webglOK()){ try{ this.r3 = new R3(this, w.querySelector(".stage")); this.cv.style.display = "none"; this.cv = this.r3.cv; }catch(e){ console.warn(e); this.r3 = null; } } this.c = this.r3 ? null : this.cv.getContext("2d");
     this.offP = api.listen(rid(S.code) + "_p_" + this.pp, v => { if(!v || v.area !== this.ai) return; this.pPrev = this.partner ? Object.assign({}, this.partner, {rt: this.pRecv}) : null; this.partner = v; this.pRecv = Date.now();
       if(this.host && v.act){ if(this.lastPA == null) this.lastPA = Math.abs(Date.now() - v.act.ts) > 10000 ? v.act.n : 0; if(v.act.n > this.lastPA){ this.lastPA = v.act.n; this.doAct(this.prole, v.act.k); } } });
     if(!this.host) this.offW = api.listen(rid(S.code) + "_w", v => { if(!v || v.a !== this.ai) return; this.snapA = this.snapB; this.snapB = v; this.snapT = Date.now(); this.wRecv = Date.now(); this.events(v.e || []); });
     this.bindControls(); this.fit = () => { if(this.r3) return this.r3.resize(); const r = this.cv.parentElement.getBoundingClientRect(), d = devicePixelRatio || 1; this.cv.width = r.width * d; this.cv.height = r.height * d; this.cv.style.width = r.width + "px"; this.cv.style.height = r.height + "px"; };
     this.fit(); addEventListener("resize", this.fit);
+    this.onHide = () => this.saveWorld(); addEventListener("pagehide", this.onHide); document.addEventListener("visibilitychange", this.onHide);
     w.querySelector("[data-a=list]").onclick = () => this.sheet();
     w.querySelector("[data-a=menu]").onclick = () => this.menu();
     this.last = performance.now(); this.sendT = 0; this.raf = requestAnimationFrame(t => this.frame(t)); this.onState();
   }
-  stop(){ MUSIC.stop(); AMB.stop(); cancelAnimationFrame(this.raf); this.dead = true; this.offP?.(); this.offW?.(); removeEventListener("resize", this.fit); }
+  wsKey(){ return rid(S.code) + "_ws" + this.ai; }
+  saveWorld(){ if(this.host && this.wsReady && this.world && !this.dead) api.update(this.wsKey(), {s: JSON.stringify(this.world.save())}).catch(() => {}); }
+  stop(){ this.saveWorld(); removeEventListener("pagehide", this.onHide); document.removeEventListener("visibilitychange", this.onHide); MUSIC.stop(); AMB.stop(); cancelAnimationFrame(this.raf); this.dead = true; this.offP?.(); this.offW?.(); removeEventListener("resize", this.fit); }
   onState(){
     // reset objects: rebuild this area's objects and people on the host, keep finished pranks
     if(this.resetSeen === undefined) this.resetSeen = R.reset ? R.reset.t : null; // a reset from before you got here doesn't count
     if(R.reset && R.reset.a === this.ai && R.reset.t !== this.resetSeen){ this.resetSeen = R.reset.t;
-      { if(this.host){ this.world = new World(this.ai, (R.done || {})[this.ai]); this.world.P.G = this.a; } const st = this.A.start[this.role]; Object.assign(this.a, {x: st[0], y: st[1], sit: 0}); this.toast("Everything's back in place."); } }
+      { if(this.host){ this.world = new World(this.ai, (R.done || {})[this.ai]); this.world.P.G = this.a; api.update(this.wsKey(), {s: null}).catch(() => {}); } const st = this.A.start[this.role]; Object.assign(this.a, {x: st[0], y: st[1], sit: 0}); this.toast("Everything's back in place."); } }
     const done = (R.done || {})[this.ai] || {}, vis = visiblePranks(this.A, done), n = vis.filter(p => done[p.id]).length; this.w.querySelector("[data-cnt]").textContent = `${n} of ${vis.length} on the list`;
     const rv = revealed(this.A, done); if(this.A.unlock && this.rvSeen === false && rv){ setTimeout(() => this.banner("A new to-do list item!!", this.A.pranks.find(p => p.unlock).text), 1200); } this.rvSeen = rv;
     if(this.host && this.world) for(const id in done) this.world.done[id] = true;
@@ -2299,6 +2349,7 @@ class Play {
       const fresh = this.world.tick(dt);
       for(const id of fresh) api.update(rid(S.code), {[`done/${this.ai}/${id}`]: true}).catch(() => {});
       this.events(this.world.events);
+      if(now - (this.wsaveAt || 0) > 2000){ this.wsaveAt = now; this.saveWorld(); }
       this.wsend = (this.wsend || 0) + dt; if(this.wsend > .25){ this.wsend = 0; api.update(rid(S.code) + "_w", this.world.snap()).catch(() => {}); }
       const done = Object.assign({}, (R.done || {})[this.ai], this.world.done);
       if(areaDone(this.A, done) && !this.advancing){ this.advancing = true; setTimeout(() => this.finishCard(), 2500); }
@@ -2318,7 +2369,7 @@ class Play {
     if(a.sit && !this.kb){ vx = 0; vy = 0; }
     a.x += vx * dt; a.y += vy * dt; a.mv = Math.hypot(vx, vy) > 10 ? 1 : 0; if(!this.host) applyDoors(A, this.flags());
     const pen = A.pen; if(pen && this.flags()["pen_" + this.role]){ const r = pen.r; a.x = clamp(a.x, r[0] + 20, r[0] + r[2] - 20); a.y = clamp(a.y, r[1] + 20, r[1] + r[3] - 20); }
-    if(a.mv){ this.stepT -= dt; if(this.stepT <= 0){ this.stepT = this.role === "H" ? .38 : .3; SFX.step(this.role); } }
+    if(a.mv){ this.stepT -= dt; if(this.stepT <= 0){ this.stepT = (this.role === "H" ? .38 : .3) * (a.k ? 2 : a.r ? .7 : 1); SFX.step(this.role, a.k); } }
     collide(a, RAD[this.role], A, this.role === "G" ? this.heavyObjs() : null);
     a.w = waterAt(A, a.x, a.y) ? 1 : 0;
   }
