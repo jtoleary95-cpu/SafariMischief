@@ -235,6 +235,11 @@ const SFX = {
   spot(){ osc("jingle", 700, .16, "square", .07, {to: 1400}); },
   shoo(){ osc("jingle", 500, .3, "sawtooth", .06, {to: 150}); },
   pen(){ [300, 250, 200].forEach((f, i) => osc("jingle", f, .2, "square", .07, {at: (ac()?.currentTime || 0) + i * .16})); },
+  thump(){ osc("people", 62, .35, "sine", .5, {to: 40}); noise("people", .08, .3, {f: 300, type: "lowpass"}); },
+  beep(){ for(let k = 0; k < 4; k++) osc("jingle", 1900, .08, "square", .05, {at: (ac()?.currentTime || 0) + k * .18}); },
+  sneeze(p = 1){ noise("people", .12, .2, {f: 2000 * p, q: 2}); noise("people", .3, .35, {f: 900 * p, fTo: 400, q: 1, at: (ac()?.currentTime || 0) + .15}); },
+  horn(){ osc("amb", 180, 1.1, "sawtooth", .08, {bp: 600, q: 2}); osc("amb", 226, 1.1, "sawtooth", .06, {bp: 700, q: 2}); },
+  crash(){ for(let k = 0; k < 3; k++) noise("amb", .18, .45, {f: 500 - k * 120, q: 1, at: (ac()?.currentTime || 0) + k * .12}); },
   camera(){ noise("amb", .05, .4, {f: 4000, q: .5}); osc("amb", 1800, .06, "square", .03); },
   step(role, soft){ const v = soft ? .4 : 1; if(role === "H"){ osc("steps", 70, soft ? .22 : .16, "sine", .35 * v, {to: 45}); noise("steps", .1, .12 * v, {f: 200, type: "lowpass"}); }
     else { noise("steps", .05, .3 * v, {f: 2200, q: 6}); setTimeout(() => noise("steps", .05, .22 * v, {f: 1800, q: 6}), soft ? 160 : 70); } },
@@ -292,6 +297,8 @@ const AMB = {
     if(k === "camp"){ for(let i = 0; i < 3; i++) if(Math.random() < .5) noise("amb", .02, .12, {f: 2500 + Math.random() * 2000, q: 3, at: (ac()?.currentTime || 0) + Math.random() * .35}); }
     if(k === "jeeps"){ if(r < .25) osc("amb", 55, 1.2, "sawtooth", .03, {vib: 18, vibd: 10, bp: 200, q: 1}); }
     if(k === "kitchen"){ if(r < .2) osc("amb", 2400 + Math.random() * 800, .05, "sine", .03); if(r > .9) noise("amb", .4, .04, {f: 800, q: .5}); }
+    if(k === "market"){ if(r < .18) SFX.laugh(.8 + Math.random() * .6); if(r > .9) noise("amb", .5, .03, {f: 900, q: .4}); }
+    if(k === "river"){ if(r < .35) noise("amb", .6, .04, {f: 500 + Math.random() * 300, q: .6}); if(r > .97) SFX.grunt(); }
     if(k === "lobby" || k === "office"){ if(r < .12) osc("amb", 1500, .3, "sine", .02, {to: 1480}); }
     if(k === "spa"){ if(r < .25) osc("amb", 880 + Math.random() * 440, 1.2, "sine", .015, {atk: .4}); }
     if(k === "kids"){ if(r < .25) SFX.laugh(1.6); }
@@ -384,11 +391,18 @@ function area(d){ // normalize: solid deco becomes collision walls
   d.wallsBase = d.walls.slice(); d.doors = d.doors || []; d.walls = d.wallsBase.concat(d.doors.map(x => x.r)); d.fixtures = []; d.objs = d.objs || []; d.fix = d.fix || []; d.npcs = d.npcs || []; AREAS.push(d); return d; }
 const tourists = W => W.all(n => /^t\d/.test(n.id));
 function applyDoors(A, F){ const w = A.wallsBase.concat((A.doors || []).filter(d => !F[d.flag]).map(d => d.r)), k = w.length; if(A._dk === k) return false; A.walls = w; A._dk = k; return true; }
-const areaDone = (A, d) => A.unlock ? !!d[A.unlock] : A.pranks.every(p => d[p.id]);
+const areaDone = (A, d) => A.pranks.every(p => d[p.id]);
+const ORDER = () => [0, ...AREAS.map((a, i) => a.num >= 18 ? i : -1).filter(i => i > 0)];
+function nextArea(ai){ const o = ORDER(), i = o.indexOf(ai); if(i >= 0) return i === o.length - 1 ? -1 : o[i + 1]; return ai >= AREAS.length - 1 ? -1 : ai + 1; }
+const areaNo = ai => AREAS[ai]?.num || ai + 1;
 const revealed = (A, d) => !A.unlock || A.pranks.filter(p => !p.unlock && d[p.id]).length >= (A.unlockAt || 0);
 const visiblePranks = (A, d) => A.pranks.filter(p => !p.unlock || revealed(A, d) || d[p.id]);
 
 /* ===== Area 1: Entrance & Gift Shop (3D sample, Goose-style) ===== */
+function tidyStock(W, it){ W.set("tidy"); W.script("keeper", [{say: it ? "Who left this in here? While I'm here, I'll tidy up." : "Who knocked these over?! Right. Tidy-up time.", t: 3, s: "grumble"},
+  {go: [770, 245]}, {wait: 3, spin: 1}, {do: W2 => { const f = W2.f("stack"); if(f) f.n = 0; }}, {go: [690, 150]}, {wait: 3.5, spin: 1}, {go: [790, 140]}, {say: "So many boxes…", t: 2}, {wait: 3.5}, {go: [700, 230]}, {wait: 3, spin: 1},
+  ...(it ? [{go: it.home, d: 45}, {home: it.id}] : [{go: [300, 190]}])]); }
+const TAGS = ["tagA", "tagB", "tagC"], TAG_OFF = [[-13, 12], [0, 14], [13, 12]], TAG_H = [21, 31, 41];
 area({
   name: "Entrance & Gift Shop", ground: PAL.grass, amb: "lobby", unlock: "keys", unlockAt: 5,
   start: {G: [410, 1120], H: [490, 1120]}, entrance: [450, 1140],
@@ -412,28 +426,28 @@ area({
   ],
   fix: [
     {id: "deskbell", m: "deskbell", x: 450, y: 366, r: 14},
-    {id: "tags", m: "tags", x: 250, y: 410, r: 18, only: "G", label: "luggage tags"},
     {id: "sign", m: "sign", x: 450, y: 700, r: 18, high: true, label: "WELCOME", label2: "WE ♥ HIPPOS", need: 3},
     {id: "gate", m: "pengate", x: 715, y: 1110, r: 18},
+    {id: "stack", m: "stack", x: 784, y: 258, r: 16, high: true, label: "boxes"},
   ],
   objs: [
     {id: "cap", m: "bellcap", on: "bell", snatch: true, own: "bell", guard: "wipe", r: 10},
     {id: "hat1", m: "sunhat", x: 130, y: 112, high: true, own: "keeper", hy: 48}, {id: "hat2", m: "tophat", x: 190, y: 112, high: true, own: "keeper", hy: 48},
     {id: "hat3", m: "cowboy", x: 250, y: 112, high: true, own: "keeper", hy: 48},
     {id: "rack", m: "rack", x: 470, y: 200, heavy: true, r: 22},
-    {id: "crate", m: "crate", x: 660, y: 350, heavy: true, r: 36, scale: 1.65},
+    {id: "crate", m: "crate", x: 650, y: 372, heavy: true, r: 30, scale: 1.4},
     {id: "lcart", m: "lcart", x: 250, y: 410, heavy: true, r: 26},
     {id: "tipjar", m: "tipjar", x: 520, y: 340, high: true, own: "clerk", hy: 42},
     {id: "pail", m: "pail", x: 700, y: 870, drag: true, liftBy: "G", highDrop: true, r: 14},
     {id: "plush", m: "plush", on: "t2", snatch: true, own: "t2"},
     {id: "keys", m: "keys", x: 565, y: 298, high: true, own: "clerk", hy: 58},
-    {id: "tag", m: "tag", x: 250, y: 410, hidden: true, own: "bell", r: 8},
+    {id: "tagA", m: "tag", x: 238, y: 422, own: "bell", r: 7, scale: 1.9, cartTag: 0, col: "#FFF59D"}, {id: "tagB", m: "tag", x: 250, y: 423, own: "bell", r: 7, scale: 1.9, cartTag: 1, col: "#FFFFFF"}, {id: "tagC", m: "tag", x: 262, y: 422, own: "bell", r: 7, scale: 1.9, cartTag: 2, col: "#81D4FA"},
     {id: "flower1", m: "flower", x: 640, y: 690, r: 8}, {id: "flower2", m: "flower", x: 210, y: 690, r: 8},
     {id: "bag1", m: "suitcase", x: 210, y: 930}, {id: "bag2", m: "backpack", x: 285, y: 940},
   ],
   npcs: [
     {id: "clerk", look: "clerk", x: 450, y: 292, beh: "post", face: Math.PI / 2, staff: true, name: "Clerk", hints: [{p: "bell", t: "One ring is plenty. Keep ringing and I WILL come out there."}, {p: "mud", t: "Tips go in the jar, thank you! I check it every time I sit down."}, {p: "keys", t: "Room keys stay on that hook. Away from the fountain!"}]},
-    {id: "keeper", look: "shop", x: 300, y: 190, beh: "wander", rad: 110, staff: true, name: "Shopkeeper", notice: 650, hints: [{p: "lock", t: "If I see my stock lying around, I fetch it. Even from the stockroom."}, {p: "lock", t: "That stockroom door doesn't lock. Never needed to."}]},
+    {id: "keeper", look: "shop", x: 300, y: 190, beh: "wander", rad: 110, staff: true, name: "Shopkeeper", notice: 650, hints: [{p: "lock", t: "If I see my stock lying around, I fetch it. Even from the stockroom."}, {p: "lock", t: "If those boxes by the stockroom door fall, I'm straight in there to tidy."}, {p: "lock", t: "That stockroom door doesn't lock. Never needed to."}]},
     {id: "bell", look: "bellhop", x: 450, y: 506, beh: "post", face: Math.PI / 2, staff: true, name: "Bellhop", hints: [{p: "inside", t: "Those bags by the fountain had better stay DRY."}, {p: "inside", t: "One splash on that luggage and I'm finished."}, {p: "cap", t: "Phew. I always stop at the cart to wipe my brow."}, {p: "tags", t: "Every bag has its tag. Mix them up and it's chaos."}, {p: "tags", t: "Cart goes up in the lift and I deliver whatever the tags say."}],
       route: [[250, 362, 5], [620, 410, 1.5], [450, 420, 1]]},
     {id: "guide", look: "guide", x: 720, y: 700, beh: "wander", rad: 50, name: "Tour guide", hints: [{p: "photo", t: "Group photo soon! Listen for my whistle."}]},
@@ -449,7 +463,9 @@ area({
         {wait: 1.5}, {go: [450, 520]}, {go: [450, 430]}, {do: (W2, n) => { n.beh = "route"; n.wp = 0; }}, {st: "route"}]);
     },
     use(W, id, role){
-      if(id === "tags" && !W.flag.tagOff && !W.flag.tagsSwapped){ const tg = W.o("tag"), cart = W.o("lcart"); W.set("tagOff"); tg.gone = false; tg.x = cart.x; tg.y = cart.y; tg.holder = role; W.f("tags").n = 0; W.emit("grab", {who: role, obj: "tag"}); return; }
+      if(id === "stack"){ W.emit("say", {obj: "", s: "crash"}); W.fx("poof", 784, 258); const kp = W.npc("keeper");
+        if(!W.flag.trapped && !W.flag.tidy && kp.st !== "busy"){ W.say("keeper", "What was that?! My stockroom!", 2, "gasp"); W.set("tidy"); W.script("keeper", [{go: [781, 360], run: 1}, {go: [770, 220]}, {do: W2 => tidyStock(W2, null)}]); }
+        return; }
       if(id === "deskbell"){ W.cnt.rings = (W.cnt.rings || 0) + 1; const c = W.npc("clerk");
         if(W.cnt.rings >= 6 && c.st !== "script"){ W.cnt.rings = 0; W.set("stormed");
           W.script("clerk", [{say: "WHAT?! WHO IS RINGING?!", s: "hey"}, {go: [450, 420]}, {emote: "💢"}, {wait: 1.5, spin: 1}, {go: [270, 440]}, {say: "Hello?!", s: "hey"},
@@ -457,9 +473,21 @@ area({
       if(id === "sign" && W.uses("sign") === 3) tourists(W).forEach((n, i) => W.script(n.id, [{wait: i * .7}, {go: [400 + i * 50, 760]}, {face: -Math.PI / 2},
         {say: ["We ♥ hippos?", "Ha! Love it.", "Is that a typo?"][i], s: "laugh"}, {wait: 2}]));
     },
-    home(W, id){ if(id === "tag" && !W.flag.tagsSwapped){ const tg = W.o("tag"); tg.gone = true; W.flag.tagOff = 0; } },
+    grab(W, id){ const t = W.o(id); if(t && t.cartTag != null){ t.prev = t.slot; t.slot = null; } },
+    home(W, id){ const t = W.o(id); if(!t || t.cartTag == null) return; const used = TAGS.map(k => W.o(k)).filter(q => q !== t && q.slot != null).map(q => q.slot);
+      t.slot = !used.includes(t.cartTag) ? t.cartTag : [0, 1, 2].find(k => !used.includes(k)) ?? null; },
     drop(W, id){
-      if(id === "tag" && !W.flag.tagsSwapped){ const tg = W.o("tag"), cart = W.o("lcart"); if(Math.hypot(tg.x - cart.x, tg.y - cart.y) < 75){ tg.gone = true; W.set("tagsSwapped"); W.f("tags").n = 1; W.fx("poof", cart.x, cart.y); } return; }
+      if(W.o(id)?.cartTag != null){ const t = W.o(id); const cart = W.o("lcart");
+        if(Math.hypot(t.x - cart.x, t.y - cart.y) > 70){ t.slot = null; return; } // dropped on the floor
+        const tags = TAGS.map(k => W.o(k)), free = [0, 1, 2].filter(k => !tags.some(q => q !== t && q.slot === k));
+        // aim for the nearest bag that isn't the one you took it from; if another tag's there, that one hops onto your empty bag
+        const order = [0, 1, 2].filter(k => k !== t.prev).sort((a, b) => Math.hypot(cart.x + TAG_OFF[a][0] - t.x, cart.y + TAG_OFF[a][1] - t.y) - Math.hypot(cart.x + TAG_OFF[b][0] - t.x, cart.y + TAG_OFF[b][1] - t.y));
+        const k = order.length ? order[0] : (t.prev ?? free[0]); const other = tags.find(q => q !== t && q.slot === k);
+        if(other){ other.slot = t.prev ?? free.find(f => f !== k) ?? null; if(other.slot == null){ other.x = cart.x + 30; other.y = cart.y + 30; } }
+        t.slot = k; t.prev = null; W.fx("poof", cart.x, cart.y - 10);
+        if(tags.some(q => q.slot != null && q.slot !== q.cartTag) && !W.flag.tagsSwapped){ W.set("tagsSwapped"); W.say("bell", "Hm? Did these tags just move?", 2, "gasp"); }
+        if(!tags.some(q => q.slot != null && q.slot !== q.cartTag)) W.flag.tagsSwapped = 0;
+        return; }
       if(!/^hat/.test(id)) return; const o = W.o(id); const t = tourists(W).find(n => Math.hypot(n.x - o.x, n.y - o.y) < 60 && !W.flag["hat_" + n.id]);
       if(t){ W.flag["hat_" + t.id] = 1; o.holder = t.id; o.worn = ""; o.fixed = true; o.stay = true; W.cnt.hatted = (W.cnt.hatted || 0) + 1; W.say(t.id, ["Ooh, a free hat!", "Is this… mine now?", "Hey! Who threw this?"][W.cnt.hatted % 3], 2, "laugh"); } },
     noise(W, role){ if(role !== "H" || W.flag.bagsFlew) return; const t1 = W.npc("t1"); if(!W.near("H", "t1", 150)) return; W.set("bagsFlew");
@@ -467,14 +495,16 @@ area({
       tourists(W).forEach((n, i) => W.script(n.id, [{say: ["AAAH!", "HIPPO!", "My bags!"][i], s: "scream"}, {go: [n.x + (i - 1) * 160, n.y - 100], run: 1}, {wait: 2}, {emote: "😱"}, {go: n.home}])); },
     tick(W, dt){
       // the tags ride on the luggage cart
-      const tg = W.f("tags"), cart = W.o("lcart"); tg.x = cart.x; tg.y = cart.y;
+      const cart = W.o("lcart");
       // the bellhop stops at the cart to wipe his brow: the only time his cap is unguarded
       const b = W.npc("bell"), wiping = b.st === "route" && b.wp % 3 === 0 && Math.hypot(b.x - 250, b.y - 362) < 16;
       W.flag.wipe = wiping ? 1 : 0; if(wiping && !b.emo) W.emote("bell", "😓", 1);
-      // a crate in the doorway seals it: nobody squeezes past
-      if(W.inZ("crate", "stockDoor")) for(const n of ["keeper", "bell", "clerk"]){ const m = W.npc(n); if(m) pushOutRect(m, 14, [736, 290, 90, 34]); }
-      // the tag rides home with the cart
-      const tag = W.o("tag"); if(tag) tag.home = [cart.x, cart.y];
+      // fetching something from the stockroom, the shopkeeper stays to tidy up: the window to shove the crate across the door
+      const kp = W.npc("keeper"), kIn = W.inZ("keeper", "stock");
+      if(kIn && !W.flag.tidy && !W.flag.trapped && kp.st === "script"){ const it = W.A.objs.map(q => W.o(q.id)).find(q => q.holder === "keeper" && !q.homeOn); if(it) tidyStock(W, it); }
+      if(!kIn && W.flag.tidy && kp.st !== "script") W.flag.tidy = 0;
+      // tags ride on their bags
+      for(const k of TAGS){ const q = W.o(k); if(q.slot === undefined) q.slot = q.cartTag; q.home = [cart.x, cart.y]; if(!q.holder && q.slot != null){ q.x = cart.x + TAG_OFF[q.slot][0]; q.y = cart.y + TAG_OFF[q.slot][1]; } }
       // the shopkeeper's muffled complaints
       if(W.flag.trapped && Math.floor(W.t) % 6 === 0 && !W.npc("keeper").bub) W.say("keeper", ["Let me out!", "Hello? HELLO?", "Who put a crate here?!"][Math.floor(W.t / 6) % 3], 2, "hey");
       // the rack rolls down the hill (off-list)
@@ -497,13 +527,13 @@ area({
     {id: "bell", text: "Ring the check-in bell until the clerk storms out", who: "H", check: W => W.flag.stormed},
     {id: "mud", text: "Swap the tip jar for a pail of mud", who: "B", check: W => { const m = W.o("pail"); return W.inZ("pail", "desktop") && m.high && !m.holder && !W.inZ("tipjar", "desktop"); }, keep: ["pail", "tipjar"],
       after: W => W.script("clerk", [{wait: 3}, {go: [470, 300]}, {say: "Ooh, tips!", s: "laugh"}, {wait: 1}, {say: "…MUD?!", s: "scream"}, {emote: "🤢", t: 3}, {wait: 2}, {go: [450, 292]}, {face: Math.PI / 2}])},
-    {id: "tags", text: "Swap the luggage tags", who: "B", big: true, check: W => W.flag.tagsSwapped && W.inZ("lcart", "lift"), keep: ["lcart"],
+    {id: "tags", text: "Swap the luggage tags", who: "B", big: true, check: W => TAGS.some(k => { const q = W.o(k); return q.slot != null && q.slot !== q.cartTag; }) && W.inZ("lcart", "lift"), keep: ["lcart"],
       after: W => { W.script("bell", [{say: "Deliveries!", s: "laugh"}, {go: [700, 400]}, {go: [150, 360]}, {say: "Room 101!"}, {wait: 1}, {go: [150, 430]}, {say: "Room 102!"}, {go: [450, 420]}, {do: (W2, n) => { n.wp = 0; }}, {st: "route"}]);
         W.script("g1", [{wait: 7}, {say: "This isn't my bag!", s: "gasp"}, {go: [300, 440]}, {say: "Who owns a snorkel this size?!", s: "hey"}, {wait: 1}, {go: [420, 410]}, {say: "I want to speak to a manager!", s: "grumble"}, {wait: 3}, {go: [122, 360]}, {st: "sit"}]);
         W.script("g2", [{wait: 9}, {say: "Why do I have a tiny sun hat?", s: "hey"}, {go: [330, 445]}, {say: "That's MY snorkel!", s: "grumble"}, {wait: 4}, {go: [122, 430]}, {st: "sit"}]);
         W.script("clerk", [{wait: 11}, {say: "Oh no. Oh no no no.", s: "gasp"}, {go: [380, 420]}, {wait: 2, spin: 1}, {go: [450, 292]}, {face: Math.PI / 2}]); }},
-    {id: "lock", text: "Lock the shopkeeper in the stockroom", who: "B", big: true, check: W => W.inZ("keeper", "stock") && W.inZ("crate", "stockDoor"), keep: ["crate"],
-      after: W => { W.busy("keeper"); W.set("trapped"); const c = W.o("crate"); c.fixed = true; W.say("keeper", "Hey! The door's stuck!", 2.5, "hey"); }},
+    {id: "lock", text: "Lock the shopkeeper in the stockroom", who: "B", big: true, check: W => W.inZ("keeper", "stock") && W.near("crate", [781, 322], 55), keep: ["crate"],
+      after: W => { W.busy("keeper"); W.set("trapped"); const c = W.o("crate"); c.x = 781; c.y = 322; c.fixed = true; const it = W.A.objs.map(q => W.o(q.id)).find(q => q.holder === "keeper" && !q.homeOn); if(it){ it.holder = ""; it.x = W.npc("keeper").x; it.y = W.npc("keeper").y + 10; } W.say("keeper", "Hey! The door's stuck!", 2.5, "hey"); }},
     {id: "photo", text: "Photobomb the welcome photo", who: "B", check: W => W.flag.groupPhoto},
     {id: "keys", text: "Hide the room keys at the bottom of the fountain", who: "B", big: true, unlock: true, check: W => W.inZ("keys", "fount") && W.diving("H") && W.near("H", "keys", 60),
       after: W => { W.hide("keys"); W.set("poolGate");
@@ -1407,6 +1437,315 @@ function findPath(G, sx, sy, tx, ty){
 }
 
 /* ===================== the host's world ===================== */
+/* ===== Areas 18-20 (3D, Goose-style) ===== */
+const PEN_WALLS = [RC(722, 1032, 8, 43), RC(722, 1145, 8, 55), RC(722, 1032, 178, 8)];
+const PEN = () => ({r: [730, 1040, 170, 160], gate: "gate"});
+const GATE_FIX = () => ({id: "gate", m: "pengate", x: 715, y: 1110, r: 18});
+const nearNpc = (W, x, y, d, f) => W.all(n => Math.hypot(n.x - x, n.y - y) < d && (!f || f(n)));
+
+/* ----- 18. Research Station ----- */
+area({
+  name: "Research Station", num: 18, ground: "#B9C46A", amb: "camp", unlock: "collar", unlockAt: 5,
+  start: {G: [410, 1120], H: [490, 1120]}, entrance: [450, 1140], pen: PEN(),
+  walls: [RC(80, 80, 520, 18), RC(80, 80, 18, 300), RC(582, 80, 18, 300), RC(80, 362, 200, 18), RC(400, 362, 200, 18), ...PEN_WALLS],
+  floors: [{r: [98, 98, 484, 264], c: "#D7CCC8"}, {r: [290, 380, 100, 820], c: "#E6D3A3"}, {r: [40, 860, 290, 220], c: "#D9C79A"}],
+  water: [[600, 650, 200, 140, "pond"]],
+  trees: [[860, 90, 34], [680, 300, 28], [50, 560, 30], [200, 1160, 32], [600, 1160, 30], [860, 900, 30]],
+  zones: {lab: [98, 98, 484, 264], slotA: [425, 96, 55, 46], slotB: [505, 96, 55, 46], fridge: [96, 236, 116, 90], camzone: [580, 520, 200, 120]},
+  deco: [
+    {r: [120, 100, 260, 40], m: "labbench", solid: true},
+    {r: [420, 98, 150, 36], m: "shelf", label: "SAMPLES", solid: true},
+    {r: [110, 250, 56, 60], m: "fridge", label: "SPECIMENS", solid: true},
+    {r: [470, 310, 70, 40], m: "collarrack"},
+    {r: [60, 880, 160, 90], m: "tent", c: "#8D6E63", solid: true},
+    {r: [240, 960, 70, 40], m: "table", solid: true},
+    {r: [110, 780, 70, 70], m: "dronepad"},
+    {r: [880, 580, 20, 120], m: "exitgate", label: "TO THE MARKET", solid: true},
+  ],
+  fix: [
+    {id: "logger", m: "logger", x: 300, y: 650, r: 14, label: "data logger"},
+    {id: "plug", m: "plug", x: 330, y: 146, r: 12, label: "plug"},
+    {id: "fridge", m: "fridgelatch", x: 172, y: 262, r: 14, high: true, label: "fridge latch"},
+    {id: "trailcam", m: "trailcam", x: 680, y: 486, r: 12, label: "trail camera"},
+    GATE_FIX(),
+  ],
+  objs: [
+    {id: "clip", m: "clipboard", on: "sci", snatch: true, own: "sci", guard: "clipDown", r: 9},
+    {id: "drone", m: "drone", x: 145, y: 815, own: "tech", fly: "droneDown", r: 12},
+    {id: "jarA", m: "jar", x: 452, y: 118, high: true, highDrop: true, own: "sci", hy: 46, r: 8},
+    {id: "jarB", m: "jar", x: 532, y: 118, high: true, highDrop: true, own: "sci", hy: 46, r: 8, col: "#4FC3F7"},
+    {id: "icecream", m: "icetub", x: 270, y: 1000, drag: true, liftBy: "G", highDrop: true, own: "cook", r: 14},
+    {id: "collar", m: "collar", x: 505, y: 335, r: 10, neck: true},
+  ],
+  npcs: [
+    {id: "sci", look: "sci", x: 330, y: 240, beh: "route", staff: true, name: "Dr. Okafor", notice: 220,
+      route: [[330, 240, 4], [340, 420, 0], [300, 600, 2], [680, 540, 6], [460, 470, 0], [340, 420, 0]],
+      hints: [{p: "clip", t: "I always set my clipboard down when I check the trail camera."}, {p: "jars", t: "Brown jar on the left, blue jar on the right. Never mix them up!"},
+        {p: "icecream", t: "The fridge latch is up high so animals can't open it."}, {p: "dance", t: "That trail camera snaps anything that moves in front of it."},
+        {p: "collar", t: "One tracking collar left, and nobody to put it on."}]},
+    {id: "intern", look: "intern", x: 240, y: 190, beh: "sit", face: -Math.PI / 2, staff: true, name: "Intern",
+      hints: [{p: "logger", t: "If that data logger starts beeping, I have to run out and reset it."}, {p: "unplug", t: "Nobody touch that plug while it's uploading. Ever."},
+        {p: "collar", t: "Resetting the logger means kneeling out there forever."}]},
+    {id: "tech", look: "tech", x: 200, y: 840, beh: "post", face: Math.PI, staff: true, name: "Drone pilot",
+      hints: [{p: "drone", t: "The drone dips low over the waterhole every lap for a close-up."}]},
+    {id: "cook", look: "cook", x: 170, y: 1010, beh: "wander", rad: 70, name: "Camp cook", hints: [{p: "icecream", t: "Nobody touches the ice cream cooler. It's for dessert."}]},
+  ],
+  hooks: {
+    use(W, id, role){
+      if(id === "plug"){ if(!W.flag.internAway){ W.say("intern", "Don't touch that! It's uploading!", 2, "hey"); W.emote("intern", "😠", 1.5); W.chase("intern", role); return; }
+        W.set("unplugged"); W.emit("say", {obj: "", s: "boing"}); }
+      if(id === "fridge" && !W.flag.fridgeOpen){ W.set("fridgeOpen"); W.emit("say", {obj: "", s: "plop"}); }
+    },
+    drop(W, id, role){
+      if(id === "collar"){ const c = W.o("collar"), t = nearNpc(W, c.x, c.y, 55, n => W.flag["kneel_" + n.id] || (n.id === "sci" && W.flag.clipDown))[0];
+        if(t){ c.holder = t.id; c.fixed = true; c.stay = true; W.set("collared"); W.say(t.id, "Why is there a beeping collar on me?!", 3, "gasp"); W.emote(t.id, "📡", 3); } }
+      if(id === "drone"){ W.set("droneDown"); W.say("tech", "My drone! Who grounded my drone?!", 2, "gasp"); }
+    },
+    home(W, id){ if(id === "drone") W.flag.droneDown = 0; },
+    grab(W, id){ if(id === "drone") W.flag.droneDown = 0; },
+    tick(W, dt){
+      // the drone flies laps; once a lap it dips low over the waterhole
+      const dr = W.o("drone"); if(!dr.holder && !W.flag.droneDown && !dr.stay){ W.cnt.dl = (W.cnt.dl || 0) + dt; const T = W.cnt.dl % 20;
+        if(T < 14){ const a = T / 14 * Math.PI * 2; dr.x = 470 + Math.cos(a) * 250; dr.y = 700 + Math.sin(a) * 210; dr.high = true; dr.fixed = true; }
+        else { const k = Math.min(1, (T - 14) / 1.5); dr.x = 720 + (580 - 720) * k; dr.y = 700 + (620 - 700) * k; dr.high = T > 19; dr.fixed = T > 19; } }
+      // Dr. Okafor sets her clipboard on the camera post while she checks it
+      const sci = W.npc("sci"), at = sci.st === "route" && sci.wp % 6 === 3 && Math.hypot(sci.x - 680, sci.y - 540) < 16, clip = W.o("clip");
+      if(at && !W.flag.clipDown){ W.set("clipDown"); sci.dir = -Math.PI / 2; if(clip.holder === "sci"){ clip.holder = ""; clip.x = 690; clip.y = 500; clip.high = false; } W.emote("sci", "🔍", 2); }
+      if(at) sci.dir = -Math.PI / 2;
+      if(!at && W.flag.clipDown){ W.flag.clipDown = 0; if(!clip.holder && Math.hypot(clip.x - 690, clip.y - 500) < 30) clip.holder = "sci"; else if(clip.holder !== "sci") W.say("sci", "Where did my clipboard go?!", 2.5, "gasp"); }
+      // sitting on the data logger sets it beeping; the intern runs out and kneels to reset it
+      if(W.sitting("H", "logger")) W.cnt.logT = (W.cnt.logT || 0) + dt; else W.cnt.logT = 0;
+      const it = W.npc("intern");
+      if(W.cnt.logT > 2.5 && !W.flag.beeping){ W.set("beeping"); W.set("logBeep"); W.emit("say", {obj: "", s: "beep"});
+        if(["sit", "post"].includes(it.st)) W.script("intern", [{say: "The logger's going haywire!", s: "gasp"}, {set: "internAway"}, {go: [340, 420], run: 1}, {go: [300, 700], run: 1}, {face: -Math.PI / 2},
+          {set: "kneel_intern"}, {say: "Shh, shh… resetting…", t: 2.5}, {wait: 9}, {set: "kneel_intern", v: 0}, {say: "Fixed. Weird.", t: 1.5}, {go: [340, 420]}, {go: [240, 190]}, {face: -Math.PI / 2}, {set: "internAway", v: 0}, {set: "beeping", v: 0}]); }
+      if(W.flag.beeping && Math.floor(W.t * 2) % 4 === 0 && !W.cnt.bp){ W.cnt.bp = 1; W.emit("say", {obj: "", s: "beep"}); } if(Math.floor(W.t * 2) % 4 !== 0) W.cnt.bp = 0;
+      // the trail camera snaps anything that moves in front of it
+      W.cnt.ct = (W.cnt.ct || 0) + dt; if(W.flag.camFlash > 0) W.flag.camFlash = Math.max(0, W.flag.camFlash - dt);
+      if(W.cnt.ct > 2.5){ W.cnt.ct = 0; const inG = W.inZ("G", "camzone"), inH = W.inZ("H", "camzone");
+        if(inG || inH){ W.flag.camFlash = .6; W.emit("say", {obj: "", s: "camera"});
+          if(inG && inH && (W.P.G?.mv || W.P.H?.mv || W.P.G?.sit !== W.P.H?.sit)){ if(!W.flag.camDance){ W.set("camDance"); W.emit("snap", {obj: "sci", who: "GH", x: 680, y: 580}); } } } }
+    },
+  },
+  pranks: [
+    {id: "clip", text: "Steal the scientist's clipboard", who: "G", check: W => W.holds("G", "clip") || W.holds("H", "clip")},
+    {id: "drone", text: "Snag the research drone out of the air", who: "G", big: true, check: W => W.holds("G", "drone") || W.holds("H", "drone"),
+      after: W => W.script("tech", [{say: "MY DRONE! It just… left the sky!", s: "scream"}, {emote: "😱", t: 3}, {wait: 2}])},
+    {id: "jars", text: "Swap the sample jars on the labelled shelf", who: "G", keep: ["jarA", "jarB"],
+      check: W => W.inZ("jarA", "slotB") && W.o("jarA").high && !W.o("jarA").holder && W.inZ("jarB", "slotA") && W.o("jarB").high && !W.o("jarB").holder,
+      after: W => W.say("sci", "Hippo dung in the WATER jar?! Who labelled these?!", 3, "gasp")},
+    {id: "logger", text: "Sit on the data logger until it beeps", who: "H", check: W => W.flag.logBeep},
+    {id: "unplug", text: "Unplug the computer mid-upload", who: "B", big: true, check: W => W.flag.unplugged,
+      after: W => { W.say("sci", "WHO UNPLUGGED THE UPLOAD?! Three weeks of data!", 3.5, "scream"); W.script("intern", [{wait: 12}, {say: "Uh oh. Oh no.", s: "gasp"}, {emote: "😭", t: 4}]); }},
+    {id: "icecream", text: "Swap the specimen samples for ice cream", who: "B", keep: ["icecream"],
+      check: W => W.flag.fridgeOpen && W.inZ("icecream", "fridge") && W.o("icecream").high && !W.o("icecream").holder,
+      after: W => { W.say("cook", "Where did my ice cream go?!", 3, "gasp"); W.script("sci", [{wait: 4}, {go: [190, 300]}, {say: "Sample check… is that… ICE CREAM?!", t: 3, s: "scream"}, {emote: "🍦", t: 3}, {wait: 2}, {do: (W2, n) => { n.wp = 0; }}, {st: "route"}]); }},
+    {id: "dance", text: "Dance together for the trail camera", who: "B", check: W => W.flag.camDance},
+    {id: "collar", text: "Put the tracking collar on a scientist", who: "B", big: true, unlock: true, check: W => W.flag.collared},
+  ],
+});
+
+/* ----- 19. Village Market ----- */
+area({
+  name: "Village Market", num: 19, ground: "#D8C08A", amb: "market", unlock: "ribbon", unlockAt: 5,
+  start: {G: [410, 1120], H: [490, 1120]}, entrance: [450, 1140], pen: PEN(),
+  walls: [...PEN_WALLS],
+  floors: [{r: [230, 60, 620, 960], c: "#E8D5A6"}, {r: [40, 250, 170, 680], c: "#C9A86A"}, {r: [520, 640, 260, 160], c: "#F1E2BE"}],
+  trees: [[860, 90, 32], [60, 120, 30], [860, 900, 30], [260, 1160, 30], [600, 1170, 28]],
+  zones: {hill: [40, 250, 170, 680], floor: [520, 640, 260, 160], fruitSign: [270, 160, 64, 52], hatSign: [656, 160, 64, 52], stage: [560, 540, 170, 80]},
+  deco: [
+    {r: [300, 100, 180, 60], m: "stall", label: "FRUIT", c: "#E53935", goods: ["#FFB300", "#7CB342", "#E53935", "#FF7043"], solid: true},
+    {r: [520, 100, 160, 60], m: "stall", label: "HATS", c: "#1E88E5", goods: ["#F3DC9A", "#8D6E63", "#E57373"], solid: true},
+    {r: [740, 300, 110, 120], m: "stall", label: "SPICES", c: "#FB8C00", goods: ["#E65100", "#FBC02D", "#BF360C"], solid: true},
+    {r: [700, 700, 120, 60], m: "stall", label: "SNACKS", c: "#8E24AA", goods: ["#FFF59D", "#F48FB1"], solid: true},
+    {r: [50, 990, 180, 70], m: "stall", label: "POTTERY", c: "#6D4C41", goods: ["#A1887F", "#D7A86E"], pots: true, solid: true},
+    {r: [560, 540, 170, 80], m: "stage"},
+    {r: [880, 580, 20, 120], m: "exitgate", label: "TO THE RIVER", solid: true},
+  ],
+  fix: [
+    {id: "pyramid", m: "pyramid", x: 390, y: 300, r: 20, solid: true},
+    {id: "drum", m: "drum", x: 600, y: 572, r: 16},
+    {id: "spice", m: "spice", x: 735, y: 450, r: 18, label: "spice sacks"},
+    GATE_FIX(),
+  ],
+  objs: [
+    {id: "mango", m: "mango", x: 390, y: 300, high: true, own: "fruitv", hy: 62, r: 8},
+    {id: "signF", m: "pricesign", x: 300, y: 186, high: true, highDrop: true, own: "fruitv", hy: 30, r: 9},
+    {id: "signH", m: "pricesign", x: 688, y: 186, high: true, highDrop: true, own: "hatv", hy: 30, r: 9, col: "#B3E5FC"},
+    {id: "fcart", m: "fcart", x: 262, y: 430, heavy: true, r: 24},
+    {id: "melon1", m: "melon", x: 110, y: 190, drag: true, liftBy: "G", r: 13}, {id: "melon2", m: "melon", x: 150, y: 215, drag: true, liftBy: "G", r: 13},
+    {id: "melon3", m: "melon", x: 100, y: 230, drag: true, liftBy: "G", r: 13},
+    {id: "basket", m: "basket", on: "t2", fixed: true, r: 9},
+    {id: "ribbon", m: "ribbon", hidden: true, x: 700, y: 620, r: 8},
+    {id: "strawhat", m: "sunhat", x: 600, y: 118, high: true, own: "hatv", hy: 40},
+  ],
+  npcs: [
+    {id: "fruitv", look: "fruitv", x: 390, y: 190, beh: "post", face: Math.PI / 2, staff: true, name: "Fruit seller", notice: 200,
+      hints: [{p: "mango", t: "Every sale, I turn round to make change. Takes forever."}, {p: "signs", t: "My price sign's at the end of my stall where folks can see it."}]},
+    {id: "hatv", look: "hatv", x: 600, y: 190, beh: "post", face: Math.PI / 2, staff: true, name: "Hat seller", notice: 200,
+      hints: [{p: "signs", t: "Hats fifty, fruit one. Mix those signs up and I'm ruined."}]},
+    {id: "spicev", look: "spicev", x: 800, y: 470, beh: "route", staff: true, name: "Spice seller", route: [[800, 470, 8], [560, 460, 10]],
+      hints: [{p: "spice", t: "One bump of those spice sacks and the whole market sneezes."}]},
+    {id: "music", look: "music", x: 640, y: 600, beh: "post", face: Math.PI / 2, name: "Musician",
+      hints: [{p: "drum", t: "Snack break soon. Nobody sit on my drum."}, {p: "dance", t: "Sing along! Loud enough and this whole market dances."}]},
+    {id: "mc", look: "mc", x: 715, y: 610, beh: "post", face: Math.PI / 2, name: "MC",
+      hints: [{p: "ribbon", t: "Dance contest every few minutes! Sit, stand, sit, stand. Show me moves!"}]},
+    {id: "potter", look: "potter", x: 280, y: 1010, beh: "post", face: -Math.PI / 2, name: "Potter",
+      hints: [{p: "cart", t: "That fruit cart sits right at the top of the hill. One push and…"}]},
+    {id: "t1", look: "tourist1", x: 450, y: 520, beh: "wander", rad: 80},
+    {id: "t2", look: "tourist2", x: 600, y: 250, beh: "route", route: [[600, 250, 14], [450, 600, 5], [300, 480, 5]],
+      hints: [{p: "melons", t: "When I'm haggling, I don't notice a thing."}]},
+    {id: "t3", look: "tourist3", x: 500, y: 880, beh: "wander", rad: 90},
+  ],
+  hooks: {
+    grab(W, id){ if(id === "mango" && !W.flag.pyramid){ W.set("pyramid"); W.emit("say", {obj: "", s: "crash"}); W.say("fruitv", "MY PYRAMID!", 2, "scream"); } },
+    use(W, id, role){
+      if(id === "spice"){ const sv = W.npc("spicev"); if(Math.hypot(sv.x - 735, sv.y - 450) < 110){ W.say("spicev", "Hands off the saffron!", 2, "hey"); W.chase("spicev", role); return; }
+        if(W.flag.sneezeT > 0) return; W.set("spilled"); W.flag.sneezeT = 6; W.set("sneezed");
+        nearNpc(W, 735, 450, 300).forEach((n, i) => W.script(n.id, [{wait: i * .3}, {emote: "🤧", t: 2}, {say: "ACHOO!", s: "sneeze", t: 1.2}, {wait: .8, spin: 1}, {say: "AH-CHOO!", s: "sneeze", t: 1.2}, {wait: 1}])); }
+    },
+    sit(W, role){
+      if(role === "H" && W.sitting("H", "drum", 40)){ W.set("drumSat"); W.emit("say", {obj: "", s: "thump"});
+        if(!W.flag.drumBreak){ W.say("music", "My DRUM!", 2, "hey"); W.chase("music", "H"); } else W.cnt.drumNote = 1; }
+      if(W.flag.contest && W.inZ(role, "floor")) W.cnt["dm" + role] = (W.cnt["dm" + role] || 0) + 1;
+    },
+    noise(W, role){
+      if(role !== "H" || W.flag.drumBreak || !W.near("H", "music", 220)) return;
+      if(W.t - (W.cnt.jamT || -99) > 10) W.cnt.jam = 0; W.cnt.jamT = W.t; W.cnt.jam = (W.cnt.jam || 0) + 1;
+      W.say("music", ["Ooh, a singer!", "Yeah! Louder!", "Everybody DANCE!"][Math.min(2, W.cnt.jam - 1)], 1.8, "laugh");
+      if(W.cnt.jam >= 3 && !W.flag.crowdDance){ W.set("crowdDance");
+        ["t1", "t2", "t3", "potter"].forEach((id, i) => W.script(id, [{go: [560 + i * 50, 700 + (i % 2) * 40]}, {emote: "💃", t: 4}, {wait: 4, spin: 1}, {say: ["Woo!", "I love this song!", "Go hippo!", "My hips!"][i], s: "laugh"}, {wait: 4, spin: 1}])); }
+    },
+    drop(W, id){
+      if(/^melon/.test(id)){ const m = W.o(id), t2 = W.npc("t2"); if(W.flag.haggling && Math.hypot(m.x - t2.x, m.y - t2.y) < 60){ W.hide(id); W.cnt.melons = (W.cnt.melons || 0) + 1;
+        W.say("t2", W.cnt.melons >= 2 ? "Why is my basket SO heavy?!" : "Hm? Did my basket get heavier?", 2.5, "gasp"); } }
+    },
+    tick(W, dt){
+      // a customer buys mangoes; the seller turns round to make change
+      W.cnt.buy = (W.cnt.buy || 0) + dt; const fv = W.npc("fruitv");
+      if(W.cnt.buy > 24 && fv.st === "post"){ W.cnt.buy = 0; W.script("t1", [{go: [390, 250]}, {face: -Math.PI / 2}, {say: "Two mangoes, please!", s: "laugh"}, {wait: 7}, {go: [450, 520]}]);
+        W.script("fruitv", [{wait: 2.5}, {say: "One moment…"}, {set: "change"}, {face: -Math.PI / 2}, {wait: 6, spin: 0}, {set: "change", v: 0}, {face: Math.PI / 2}, {say: "There you go!"}]); }
+      if(W.flag.change) fv.dir = -Math.PI / 2;
+      // the haggler at the hat stall
+      const t2 = W.npc("t2"); W.flag.haggling = t2.st === "route" && t2.wp % 3 === 0 && Math.hypot(t2.x - 600, t2.y - 250) < 16 ? 1 : 0;
+      if(W.flag.haggling && !t2.bub && Math.random() < dt * .4) W.say("t2", ["Fifty? For THIS hat?", "I'll give you ten.", "My final offer is twelve!"][Math.floor(W.t) % 3], 2, "grumble");
+      // musician's snack break
+      W.cnt.mt = (W.cnt.mt || 0) + dt; const mu = W.npc("music");
+      if(W.cnt.mt > 40 && mu.st === "post"){ W.cnt.mt = 0; W.script("music", [{say: "Quick snack break!"}, {set: "drumBreak"}, {go: [760, 800]}, {wait: 11}, {go: [640, 600]}, {face: Math.PI / 2}, {set: "drumBreak", v: 0},
+        {do: W2 => { if(W2.cnt.drumNote){ W2.cnt.drumNote = 0; W2.say("music", "Why is my drum… flat?", 2.5, "gasp"); } }}]); }
+      // spice cloud
+      if(W.flag.sneezeT > 0) W.flag.sneezeT = Math.max(0, W.flag.sneezeT - dt);
+      // the fruit cart on the hill rolls all the way down into the pottery stall
+      const c = W.o("fcart"); if(!W.flag.cartRolled && W.inZ("fcart", "hill")){ c.y += 150 * dt; c.x += (125 - c.x) * Math.min(1, dt * 2);
+        if(c.y >= 925){ c.y = 925; c.fixed = true; W.set("cartRolled"); W.emit("say", {obj: "", s: "crash"}); W.fx("poof", 140, 990); W.script("potter", [{say: "MY POTS!", s: "scream"}, {emote: "😱", t: 3}, {wait: 2, spin: 1}]); W.say("fruitv", "My CART!", 2, "scream"); } }
+      // dance contest
+      W.cnt.dc = (W.cnt.dc || 0) + dt;
+      if(!W.flag.contest && W.cnt.dc > 35 && !W.flag.ribbonWon){ W.cnt.dc = 0; W.set("contest"); W.cnt.dmG = 0; W.cnt.dmH = 0; W.cnt.ce = W.t + 16; W.say("mc", "DANCE CONTEST! On the dance floor, show me your moves!", 3, "hey"); }
+      if(W.flag.contest){ if((W.cnt.dmG || 0) >= 4 && (W.cnt.dmH || 0) >= 4){ W.flag.contest = 0; W.set("ribbonWon"); const r = W.o("ribbon"); r.gone = false; r.holder = ""; r.worn = "H"; r.gift = 1; r.stay = true;
+          W.say("mc", "The winners… a hippo and a giraffe?! Here's your ribbon!", 3.5, "laugh"); W.emit("say", {obj: "", s: "cheer"}); }
+        else if(W.t > W.cnt.ce){ W.flag.contest = 0; W.say("mc", "Time's up! Better luck next round.", 2.5, "grumble"); } }
+    },
+  },
+  pranks: [
+    {id: "mango", text: "Steal the mango off the top of the fruit pyramid", who: "G", big: true, check: W => W.holds("G", "mango") || W.holds("H", "mango")},
+    {id: "signs", text: "Swap the price signs on the fruit and hat stalls", who: "G", keep: ["signF", "signH"],
+      check: W => W.inZ("signF", "hatSign") && W.o("signF").high && !W.o("signF").holder && W.inZ("signH", "fruitSign") && W.o("signH").high && !W.o("signH").holder,
+      after: W => { W.script("t1", [{go: [380, 250]}, {say: "Mangoes are FIFTY now?!", s: "gasp"}, {wait: 2}, {go: [600, 250]}, {say: "Hats for ONE? I'll take ten!", s: "laugh"}, {wait: 2}]); W.say("hatv", "Wait— NO!", 2, "scream"); }},
+    {id: "drum", text: "Sit on the musician's drum", who: "H", check: W => W.flag.drumSat},
+    {id: "cart", text: "Send the fruit cart rolling downhill", who: "H", big: true, check: W => W.flag.cartRolled},
+    {id: "spice", text: "Knock over the spice sacks so everyone sneezes", who: "G", big: true, check: W => W.flag.sneezed},
+    {id: "melons", text: "Fill a tourist's shopping basket with watermelons", who: "B", check: W => (W.cnt.melons || 0) >= 2},
+    {id: "dance", text: "Bellow along with the musician until the crowd dances", who: "H", big: true, check: W => W.flag.crowdDance},
+    {id: "ribbon", text: "Win the dance contest ribbon", who: "B", big: true, unlock: true, check: W => W.flag.ribbonWon},
+  ],
+});
+
+/* ----- 20. Riverboat Dock ----- */
+area({
+  name: "Riverboat Dock", num: 20, ground: "#A8CF6A", amb: "river", unlock: "hijack", unlockAt: 5,
+  start: {G: [410, 1120], H: [490, 1120]}, entrance: [450, 1140], pen: PEN(),
+  walls: [RC(520, 232, 228, 8), RC(520, 368, 228, 8), RC(740, 232, 8, 144), RC(520, 232, 8, 38), RC(520, 330, 8, 46), ...PEN_WALLS],
+  floors: [{r: [0, 412, 900, 130], c: "#E8D9A8"}, {r: [380, 240, 140, 172], c: "#A1887F"}, {r: [400, 540, 100, 660], c: "#E6D3A3"}],
+  water: [[0, 60, 900, 172, "river"], [0, 232, 380, 180, "river"], [748, 232, 152, 180, "river"], [520, 376, 228, 36, "river"]],
+  trees: [[60, 700, 32], [860, 700, 30], [200, 1160, 32], [620, 1170, 28], [300, 900, 26]],
+  zones: {pod: [40, 100, 300, 200], deck: [528, 240, 212, 128], tiltside: [640, 240, 100, 128], boatpush: [440, 250, 80, 120], flagtop: [528, 220, 70, 60], baitspot: [416, 362, 68, 48], shore: [0, 412, 900, 130]},
+  deco: [
+    {r: [380, 240, 140, 172], m: "dock"},
+    {r: [520, 240, 228, 128], m: "riverboat"},
+    {r: [40, 100, 300, 200], m: "pod"},
+    {r: [100, 470, 110, 60], m: "kiosk", label: "RIVER TOURS", solid: true},
+    {r: [600, 520, 140, 60], m: "stall", label: "SNACKS", c: "#00897B", goods: ["#7CB342", "#FFF59D"], solid: true},
+  ],
+  fix: [
+    {id: "rope", m: "rope", x: 506, y: 392, r: 12, only: "G", label: "mooring rope"},
+    {id: "wheel", m: "wheel", x: 722, y: 300, r: 14, label: "ship's wheel"},
+    GATE_FIX(),
+  ],
+  objs: [
+    {id: "capthat", m: "capthat", on: "capt", snatch: true, own: "capt", guard: "radio", r: 10},
+    {id: "bait", m: "bait", x: 450, y: 386, own: "fisher", r: 10},
+    {id: "fish", m: "fish", x: 486, y: 398, own: "fisher", r: 9, highDrop: true},
+    {id: "cuc", m: "cucumber", x: 640, y: 548, high: true, own: "snackv", hy: 36, r: 9},
+    {id: "mega", m: "megaphone", x: 155, y: 496, high: true, own: "guide", hy: 40, r: 10},
+  ],
+  npcs: [
+    {id: "capt", look: "capt", x: 700, y: 300, beh: "route", staff: true, name: "Captain", notice: 240,
+      route: [[700, 300, 7], [560, 300, 0], [460, 330, 0], [480, 440, 2], [670, 610, 10], [480, 440, 0], [460, 330, 0], [560, 300, 0]],
+      hints: [{p: "capthat", t: "Every lap I stop at the wheel and radio in. Can't hear a thing then."}, {p: "untie", t: "That mooring rope takes three good tugs to undo."},
+        {p: "flag", t: "Nothing flies on my flagpole but the flag."}, {p: "hijack", t: "Snack break every lap. Nobody touches my wheel while I'm gone."}]},
+    {id: "guide", look: "guide", x: 155, y: 560, beh: "post", face: Math.PI / 2, staff: true, name: "River guide",
+      hints: [{p: "pod", t: "If that escaped hippo's hiding with the real ones, I'd never spot her."}, {p: "mega", t: "My megaphone stays on the kiosk. Nobody touches it."}]},
+    {id: "fisher", look: "fisher", x: 450, y: 256, beh: "sit", face: -Math.PI / 2, name: "Fisherman",
+      hints: [{p: "bait", t: "Best bait on the river, in the bucket right behind me."}]},
+    {id: "snackv", look: "snackv", x: 670, y: 500, beh: "post", face: -Math.PI / 2, name: "Snack seller", hints: [{p: "bait", t: "Fresh cucumbers! Crunchy, cool, and great for fishing. Ha!"}]},
+    {id: "t1", look: "tourist1", x: 600, y: 330, beh: "sit", face: -Math.PI / 2}, {id: "t3", look: "tourist3", x: 640, y: 330, beh: "sit", face: -Math.PI / 2},
+    {id: "t2", look: "tourist2", x: 330, y: 480, beh: "wander", rad: 90},
+  ],
+  hooks: {
+    use(W, id, role){
+      if(id === "rope" && !W.flag.untied && W.uses("rope") % 3 === 0){ W.set("untied"); W.emit("say", {obj: "", s: "plop"}); }
+    },
+    noise(W, role){ if(role === "H" && W.held("G") === "mega" && W.near("G", "H", 90) && !W.flag.warned){ W.set("warned"); W.emit("say", {obj: "", s: "horn"});
+      ["t1", "t2", "t3", "fisher"].forEach((id, i) => W.script(id, [{say: ["HIPPO WARNING?!", "RUN!", "Not again!", "My rod!"][i], s: "scream"}, {go: [200 + i * 150, 760], run: 1}, {emote: "😱", t: 3}, {wait: 6}, {go: W.npc(id).home}]));
+      W.say("guide", "That wasn't me! That was NOT me!", 3, "gasp"); } },
+    tick(W, dt){
+      // captain radios in at the wheel: he can't feel a thing
+      const cp = W.npc("capt"), atWheel = cp.st === "route" && cp.wp % 8 === 0 && Math.hypot(cp.x - 700, cp.y - 300) < 16;
+      W.flag.radio = atWheel ? 1 : 0; if(atWheel){ cp.dir = 0; if(!cp.bub && Math.random() < dt * .5) W.say("capt", ["River Queen to base, over.", "Say again, base? Over.", "Copy that. Over."][Math.floor(W.t) % 3], 2); }
+      W.flag.captBreak = cp.st === "route" && cp.wp % 8 === 4 ? 1 : 0;
+      // Harriet sits on one side of the boat until it tilts
+      if(W.inZ("H", "tiltside") && W.P.H?.sit) W.cnt.tl = (W.cnt.tl || 0) + dt; else W.cnt.tl = 0;
+      if(W.cnt.tl > 2.5 && !W.flag.tilt){ W.set("tilt"); W.set("tilted"); W.cnt.tiltEnd = W.t + 7; ["t1", "t3"].forEach((id, i) => W.script(id, [{say: ["Whoa whoa WHOA!", "We're tipping!"][i], s: "scream"}, {wait: 1.5, spin: 1}, {go: [450, 330]}, {go: [420 + i * 60, 470], run: 1}, {emote: "😵", t: 3}, {wait: 6}, {go: [450, 330]}, {go: W.npc(id).home}])); }
+      if(W.flag.tilt && W.t > W.cnt.tiltEnd) W.flag.tilt = 0;
+      // the escaped-hippo search: hide among the real ones
+      W.cnt.gs = (W.cnt.gs || 0) + dt; const gd = W.npc("guide");
+      if(W.cnt.gs > 34 && gd.st === "post"){ W.cnt.gs = 0;
+        W.script("guide", [{say: "Has anyone seen an escaped hippo?!", s: "hey"}, {go: [230, 430]}, {face: -Math.PI / 2}, {say: "Harriet? HARRIET?", t: 2, s: "hey"}, {wait: 1.5, spin: 0},
+          {do: W2 => { const H = W2.P.H; if(H && H.sit && W2.inZ("H", "pod")){ W2.set("podHidden"); W2.say("guide", "Just regular hippos. Huh.", 2.5, "grumble"); }
+            else if(H && !W2.inZ("H", "pod") && Math.hypot(H.x - 230, H.y - 430) < 260){ W2.say("guide", "THERE you are!", 2, "hey"); W2.chase("guide", "H"); } }},
+          {wait: 2}, {go: [650, 440]}, {wait: 3, spin: 1}, {go: [155, 560]}, {face: Math.PI / 2}]); }
+      // untied boat + a hippo shove from the dock = adrift
+      const H = W.P.H, G = W.P.G;
+      if(W.flag.untied && H?.c && W.inZ("H", "boatpush")){
+        if(G && G.sit && W.sitting("G", "wheel", 46) && !W.flag.hijacked){ W.set("hijacked"); W.emit("say", {obj: "", s: "horn"}); W.say("capt", "MY BOAT! COME BACK!", 3, "scream"); W.script("capt", [{go: [480, 440], run: 1}, {emote: "😱", t: 5}, {wait: 5, spin: 1}]); }
+        else if(!W.flag.drift){ W.set("drift"); W.set("drifted"); W.cnt.driftEnd = W.t + 14; W.say("capt", "Who untied my boat?!", 2.5, "scream"); W.script("capt", [{go: [480, 400], run: 1}, {wait: 4, spin: 1}, {say: "Got it. Honestly.", s: "grumble"}, {do: W2 => { W2.flag.drift = 0; W2.flag.untied = 0; }}]); } }
+      if(W.flag.drift && W.t > W.cnt.driftEnd){ W.flag.drift = 0; W.flag.untied = 0; }
+    },
+  },
+  pranks: [
+    {id: "capthat", text: "Steal the captain's hat", who: "G", check: W => W.holds("G", "capthat") || W.holds("H", "capthat")},
+    {id: "bait", text: "Swap the fishing bait for cucumbers", who: "G", keep: ["cuc"], check: W => W.inZ("cuc", "baitspot") && !W.o("cuc").holder && !W.inZ("bait", "baitspot"),
+      after: W => W.script("fisher", [{wait: 3}, {say: "Bait time… a CUCUMBER?", s: "gasp"}, {emote: "🥒", t: 3}, {wait: 2}])},
+    {id: "pod", text: "Hide in the real hippo pod so the guide can't find you", who: "H", check: W => W.flag.podHidden},
+    {id: "tilt", text: "Sit on one side of the boat until the tourists tilt", who: "H", big: true, check: W => W.flag.tilted},
+    {id: "mega", text: "Steal the guide's megaphone and bellow fake hippo warnings", who: "B", big: true, check: W => W.flag.warned},
+    {id: "flag", text: "Hang a fish from the captain's flagpole", who: "G", keep: ["fish"], check: W => W.inZ("fish", "flagtop") && W.o("fish").high && !W.o("fish").holder,
+      after: W => W.say("capt", "Why does my flag smell like FISH?!", 3, "gasp")},
+    {id: "untie", text: "Untie the boat: Ginger unties, Harriet pushes it off", who: "B", big: true, check: W => W.flag.drifted},
+    {id: "hijack", text: "Hijack the riverboat", who: "B", big: true, unlock: true, check: W => W.flag.hijacked},
+  ],
+});
+
 /* ===================== v2 world: data-driven pranks, scripted aftermaths, reactive people ===================== */
 const SIGHT = 220, SEAT_D = 14;
 class World {
@@ -1421,7 +1760,7 @@ class World {
     const self = this;
     this.W = {
       get t(){ return self.t; }, // area scripts need the clock
-      get t(){ return self.t; }, flag: this.flag, cnt: this.cnt, P: this.P,
+      get t(){ return self.t; }, A: this.A, flag: this.flag, cnt: this.cnt, P: this.P,
       o: id => self.o(id), npc: id => self.npc(id), f: id => self.fixt(id),
       pos: a => self.pos(a), inZ: (a, z) => self.inZ(a, z), near: (a, b, d) => self.near(a, b, d),
       held: r => self.held(r)?.id || null, holds: (r, id) => self.held(r)?.id === id,
@@ -1433,7 +1772,7 @@ class World {
       hide: id => { const o = self.o(id); if(o){ o.gone = true; o.holder = ""; } }, show: id => { const o = self.o(id); if(o) o.gone = false; },
       keep: id => { const o = self.o(id); if(o) o.stay = true; }, busy: (id, st = "busy") => { const n = self.npc(id); if(n){ n.st = st; n.script = null; n.path = null; } },
       free: id => { const n = self.npc(id); if(n){ n.st = n.beh; n.script = null; } }, emit: (k, d) => self.emit(k, d), scene: (x, y) => self.emit("scene", {x, y}),
-      photo: (id, tag) => self.photo(self.npc(id), tag), stay: (r, z, s) => self.stay(r, z, s),
+      photo: (id, tag) => self.photo(self.npc(id), tag), chase: (id, r) => { const n = self.npc(id); if(n && self.P[r]) self.chase(n, r, "scene"); }, stay: (r, z, s) => self.stay(r, z, s),
       fx: (k, x, y) => self.emit("fx", {obj: k, x, y}), all: f => self.npcs.filter(f),
     };
   }
@@ -1649,14 +1988,14 @@ class World {
 
   /* ---- save / restore the world so a refresh doesn't undo anything ---- */
   save(){ const r1 = v => Math.round(v), skip = /^(pen_|lining$|wipe$)/;
-    const o = {}; for(const x of this.objs) o[x.id] = [r1(x.x), r1(x.y), x.holder || "", x.gone ? 1 : 0, x.worn || "", x.high ? 1 : 0, x.fixed ? 1 : 0, x.stay ? 1 : 0, x.gift ? 1 : 0];
+    const o = {}; for(const x of this.objs) o[x.id] = [r1(x.x), r1(x.y), x.holder || "", x.gone ? 1 : 0, x.worn || "", x.high ? 1 : 0, x.fixed ? 1 : 0, x.stay ? 1 : 0, x.gift ? 1 : 0, x.slot == null ? -1 : x.slot];
     const n = {}; for(const x of this.npcs) n[x.id] = [r1(x.x), r1(x.y), x.st === "busy" ? "busy" : "", x.beh, Math.round(x.dir * 100)];
     const fx = {}; for(const f of this.fix) if(f.n) fx[f.id] = f.n;
     const f = {}; for(const k in this.flag) if(!skip.test(k) && this.flag[k]) f[k] = this.flag[k];
     const c = Object.assign({}, this.cnt); delete c.pt; return {o, n, fx, f, c}; }
   restore(v){ if(!v) return;
     for(const k in v.f || {}) this.flag[k] = v.f[k]; Object.assign(this.cnt, v.c || {});
-    for(const x of this.objs){ const q = v.o?.[x.id]; if(!q) continue; let [ox, oy, holder, gone, worn, high, fixed, stay, gift] = q;
+    for(const x of this.objs){ const q = v.o?.[x.id]; if(!q) continue; let [ox, oy, holder, gone, worn, high, fixed, stay, gift, slot] = q; if(x.cartTag != null) x.slot = slot == null ? x.cartTag : slot < 0 ? null : slot;
       if(holder === "G" || holder === "H") holder = x.homeOn || ""; // a refresh drops what you carried: worn things go back to their owner, the rest stays where you picked it up
       if(holder && !this.npc(holder)) holder = "";
       if(holder && holder !== x.homeOn && !fixed){ holder = x.homeOn || ""; if(!holder){ ox = x.home[0]; oy = x.home[1]; } }
@@ -1957,7 +2296,7 @@ function strHash(s){ let h = 0; for(const ch of String(s)) h = (h * 31 + ch.char
 
 /* ---- props ---- */
 const PROPS = {
-  tag(){ return G3(P3(B3(7, 1, 5, "#FFF59D"), 0, 3, 0), P3(C3(.8, .8, 1.4, "#5D4037", 6), -2.5, 3.8, 0), P3(B3(.4, .4, 6, "#9E9E9E"), -2.5, 4, -3)); },
+  tag(){ return G3(P3(B3(7, 9, 1, "#FFF59D"), 0, -4, 0), P3(C3(.9, .9, 1.4, "#5D4037", 6), 0, -1, 0), P3(B3(.4, 5, .4, "#9E9E9E"), 0, 2, 0)); },
   flower(){ const g = G3(P3(C3(.6, .6, 9, "#43A047", 5), 0, 4.5, 0)); for(let k = 0; k < 6; k++){ const a = k / 6 * 6.283; g.add(P3(SC3(S3(2.2, "#F48FB1", 6, 4), 1, .5, 1), Math.cos(a) * 2.6, 9.5, Math.sin(a) * 2.6)); } g.add(P3(S3(1.6, "#FFD54F", 6, 4), 0, 10, 0)); g.add(P3(SC3(S3(1.8, "#66BB6A", 5, 3), 1.4, .4, .7), 1.8, 5, 0)); return g; },
   bellcap(){ return G3(P3(C3(6.5, 7, 6, "#C62828", 12), 0, 3, 0), P3(C3(7.2, 7.2, 1.6, "#FFC107", 12), 0, 1.2, 0), P3(SC3(C3(4, 4, 1, "#1A1A1A", 10), 1, 1, .6), 6, .8, 0)); },
   sunhat(){ return G3(P3(C3(14, 14, 1.4, "#F2D598", 14), 0, .7, 0), P3(C3(6.5, 7.5, 6, "#EFCB80", 12), 0, 4, 0), P3(C3(7.6, 7.6, 1.6, "#E57373", 12), 0, 2, 0)); },
@@ -1989,6 +2328,7 @@ const PROPS = {
   backpack(){ return G3(P3(SC3(S3(9, "#388E3C"), 1, 1.2, .7), 0, 10, 0), P3(B3(10, 8, 4, "#2E7D32"), 0, 7, 6), P3(B3(2, 14, 2, "#1B5E20"), -4, 11, -6)); },
 };
 const FIXT = {
+  stack(){ const g = new THREE.Group(); [[0, 0, 0, 22, "#C8955A"], [2, 22, 1, 18, "#B07D47"], [-1, 40, 0, 14, "#D7A86E"]].forEach(([x, y, z, sz, c]) => { const b = P3(B3(sz, sz, sz, c), x, y + sz / 2, z); g.add(b); }); return g; },
   deskbell(){ return G3(P3(C3(5, 5, 1.5, "#5D4037", 12), 0, 41, 0), P3(SC3(S3(4.4, "#E0B13A", 12, 6), 1, .7, 1), 0, 42.5, 0), P3(S3(1, "#E0B13A", 6, 4), 0, 46, 0)); },
   tags(){ const g = new THREE.Group(); for(let k = 0; k < 3; k++){ const t = P3(B3(.6, 4, 3, ["#FFF59D", "#FFFFFF", "#B3E5FC"][k]), -12 + k * 10, 42, 13); t.userData.tag = k; g.add(t); } return g; },
   sign(f){ const g = G3(P3(C3(1.8, 1.8, 66, "#6D4C41", 6), -22, 33, 0), P3(C3(1.8, 1.8, 66, "#6D4C41", 6), 22, 33, 0), P3(B3(54, 20, 3, "#8D6E63"), 0, 60, 0));
@@ -2016,10 +2356,127 @@ const DECO3 = {
   door(d, w, dp){ const g = G3(P3(B3(3, 58, 30, "#8D5A3B"), 0, 29, 0), P3(S3(1.4, "#FFD54F", 6, 4), 2.5, 28, 10)); const l = label3(d.label, 12, 6, "#3E2723", "#FFE082"); l.position.set(1.8, 46, 0); l.rotation.y = Math.PI / 2; g.add(l); return g; },
   exitgate(d, w, dp){ const g = new THREE.Group(); g.add(P3(B3(8, 80, 8, "#5D4037"), 0, 40, -dp / 2)); g.add(P3(B3(8, 80, 8, "#5D4037"), 0, 40, dp / 2));
     const leaf = new THREE.Group(); for(let k = 0; k < 8; k++) leaf.add(P3(B3(3, 60, 10, "#8D6E63"), 0, 32, 7 + k * 13)); leaf.add(P3(B3(4, 5, 104, "#6D4C41"), 0, 50, 54)); leaf.add(P3(B3(4, 5, 104, "#6D4C41"), 0, 16, 54));
-    leaf.position.z = -dp / 2 + 2; g.add(leaf); g.userData.leaf = leaf; const l = label3("TO THE POOL", 50, 12, "#FFFFFF", "#0277BD"); l.position.set(-5, 88, 0); l.rotation.y = -Math.PI / 2; g.add(l); return g; },
+    leaf.position.z = -dp / 2 + 2; g.add(leaf); g.userData.leaf = leaf; const l = label3(d.label || "TO THE POOL", 50, 12, "#FFFFFF", "#0277BD"); l.position.set(-5, 88, 0); l.rotation.y = -Math.PI / 2; g.add(l); return g; },
   keyhook(d, w, dp){ return G3(P3(C3(1.5, 1.5, 56, "#5D4037", 6), 0, 28, -2), P3(B3(22, 14, 2, "#8D6E63"), 0, 60, -2), P3(C3(.6, .6, 4, "#FFD54F", 5).rotateX(Math.PI / 2), 0, 60, 0)); },
   bench(d, w, dp){ return G3(P3(B3(w, 3, dp, "#A1887F"), 0, 13, 0), P3(B3(w, 12, 3, "#8D6E63"), 0, 21, -dp / 2), P3(B3(3, 12, dp, "#5D4037"), -w / 2 + 3, 6, 0), P3(B3(3, 12, dp, "#5D4037"), w / 2 - 3, 6, 0)); },
 };
+
+/* ---- models for Areas 18-20 ---- */
+Object.assign(LOOK3, {
+  sci: {shirt: "#FAFAFA", pants: "#455A64", skin: "#8D5524", hair: "#212121", vest: "#ECEFF1"},
+  intern: {shirt: "#F5F5F5", pants: "#3949AB", skin: "#F1C27D", hair: "#D84315", hat: "cap", capc: "#1565C0"},
+  tech: {shirt: "#546E7A", pants: "#37474F", skin: "#E0AC69", hair: "#3E2723", vest: "#FF6F00"},
+  cook: {shirt: "#FFFFFF", pants: "#5D4037", skin: "#C68642", hair: "#212121", apron: "#43A047"},
+  fruitv: {shirt: "#F9A825", pants: "#4E342E", skin: "#8D5524", hair: "#212121", apron: "#E53935", hat: "sun"},
+  hatv: {shirt: "#1E88E5", pants: "#263238", skin: "#C68642", hair: "#3E2723", hat: "ranger"},
+  spicev: {shirt: "#6D4C41", pants: "#3E2723", skin: "#8D5524", hair: "#212121", vest: "#FB8C00"},
+  music: {shirt: "#FF7043", pants: "#212121", skin: "#5D4037", hair: "#212121"},
+  mc: {shirt: "#8E24AA", pants: "#212121", skin: "#E0AC69", hair: "#3E2723", tie: "#FFD600", collar: "#FFFFFF"},
+  potter: {shirt: "#BCAAA4", pants: "#5D4037", skin: "#F1C27D", hair: "#9E9E9E", apron: "#8D6E63"},
+  capt: {shirt: "#FAFAFA", pants: "#1A237E", skin: "#FFDBAC", hair: "#ECEFF1", trim: "#FFC107"},
+  fisher: {shirt: "#689F38", pants: "#5D4037", skin: "#C68642", hair: "#4E342E", vest: "#827717", hat: "sun"},
+  snackv: {shirt: "#FFEB3B", pants: "#37474F", skin: "#8D5524", hair: "#212121", apron: "#F06292"},
+});
+Object.assign(LOOKS, {sci: {shirt: "#FAFAFA", hat: "none", skin: "#8D5524"}, intern: {shirt: "#F5F5F5", hat: "cap", skin: "#F1C27D"}, tech: {shirt: "#546E7A", hat: "none", skin: "#E0AC69"},
+  cook: {shirt: "#FFFFFF", hat: "none", skin: "#C68642"}, fruitv: {shirt: "#F9A825", hat: "sun", skin: "#8D5524"}, hatv: {shirt: "#1E88E5", hat: "ranger", skin: "#C68642"},
+  spicev: {shirt: "#6D4C41", hat: "none", skin: "#8D5524"}, music: {shirt: "#FF7043", hat: "none", skin: "#5D4037"}, mc: {shirt: "#8E24AA", hat: "none", skin: "#E0AC69"},
+  potter: {shirt: "#BCAAA4", hat: "none", skin: "#F1C27D"}, capt: {shirt: "#FAFAFA", hat: "cap", skin: "#FFDBAC"}, fisher: {shirt: "#689F38", hat: "sun", skin: "#C68642"},
+  snackv: {shirt: "#FFEB3B", hat: "none", skin: "#8D5524"}});
+
+Object.assign(DECO3, {
+  labbench(d, w, dp){ const g = G3(P3(B3(w, 36, dp, "#ECEFF1"), 0, 18, 0), P3(B3(w + 4, 3, dp + 4, "#90A4AE"), 0, 37.5, 0));
+    g.add(P3(B3(26, 18, 3, "#263238"), -w / 2 + 60, 50, -dp / 2 + 8)); g.add(P3(B3(23, 15, 1, "#00E676"), -w / 2 + 60, 50, -dp / 2 + 10)); // computer, upload bar
+    g.add(P3(B3(18, 3, 10, "#37474F"), -w / 2 + 60, 40, -dp / 2 + 18));
+    for(let k = 0; k < 5; k++) g.add(P3(C3(2.5, 2.5, 9, ["#80DEEA", "#FFAB91", "#C5E1A5", "#FFF59D", "#CE93D8"][k], 8), 10 + k * 14, 44, 2));
+    g.add(P3(B3(14, 22, 14, "#B0BEC5"), w / 2 - 30, 50, 0)); g.add(P3(C3(2, 2, 14, "#78909C", 6), w / 2 - 30, 66, 0)); return g; },
+  fridge(d, w, dp){ const g = G3(P3(B3(w, 76, dp, "#F5F5F5"), 0, 38, 0), P3(B3(1, 70, dp - 6, "#E0E0E0"), w / 2 + .6, 38, 0));
+    const l = label3(d.label || "FRIDGE", 34, 8, "#FFFFFF", "#0277BD"); l.position.set(w / 2 + 1.4, 64, 0); l.rotation.y = Math.PI / 2; g.add(l);
+    const door = new THREE.Group(); door.position.set(w / 2 + 1, 0, -dp / 2); door.add(P3(B3(3, 70, dp, "#FAFAFA"), 1.5, 38, dp / 2)); door.add(P3(B3(2, 10, 3, "#90A4AE"), 3.5, 60, dp - 6)); g.add(door);
+    const tubs = new THREE.Group(); for(let k = 0; k < 4; k++) tubs.add(P3(C3(3, 3, 6, k % 2 ? "#A5D6A7" : "#FFCC80", 8), 0, 14 + k * 16, (k % 2 ? 6 : -6))); g.add(tubs);
+    g.userData.anim = (t, F) => { const want = F.fridgeOpen ? -1.7 : 0; door.rotation.y += (want - door.rotation.y) * .1; }; return g; },
+  tent(d, w, dp){ const g = new THREE.Group(), c = d.c || "#A1887F"; const roof = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, w, 3), m3(c)); roof.scale.set(dp * .7, 1, dp * .55); roof.rotation.z = Math.PI / 2; roof.position.y = dp * .3; g.add(roof);
+    g.add(P3(B3(2, dp * .8, 2, "#5D4037"), -w / 2, dp * .4, 0)); g.add(P3(B3(2, dp * .8, 2, "#5D4037"), w / 2, dp * .4, 0)); g.add(P3(B3(w * .3, dp * .45, 1, "#4E342E"), w * .2, dp * .22, dp * .46)); return g; },
+  table(d, w, dp){ const g = G3(P3(B3(w, 3, dp, "#A1887F"), 0, 26, 0)); for(const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) g.add(P3(B3(3, 25, 3, "#6D4C41"), x * (w / 2 - 3), 12.5, z * (dp / 2 - 3)));
+    g.add(P3(B3(22, 16, 14, "#1E88E5"), -w / 4, 36, 0)); g.add(P3(B3(23, 3, 15, "#FFFFFF"), -w / 4, 45, 0)); return g; },
+  dronepad(d, w, dp){ const g = G3(P3(C3(w / 2, w / 2, 2, "#455A64", 18), 0, 1, 0), P3(C3(w / 2 - 6, w / 2 - 6, 2.2, "#FFC107", 18), 0, 1.2, 0), P3(C3(w / 2 - 10, w / 2 - 10, 2.4, "#455A64", 18), 0, 1.3, 0));
+    const l = label3("H", 16, 16, "#FFFFFF", "#455A64"); l.rotation.x = -Math.PI / 2; l.position.y = 2.6; g.add(l); return g; },
+  collarrack(d, w, dp){ return G3(P3(B3(w, 50, 4, "#8D6E63"), 0, 25, -dp / 2 + 2), P3(B3(w, 3, 4, "#5D4037"), 0, 44, -dp / 2 + 5)); },
+  stall(d, w, dp){ const c = d.c || "#E53935", g = G3(P3(B3(w, 30, dp * .6, "#A1887F"), 0, 15, dp * .15), P3(B3(w + 4, 3, dp * .6 + 4, "#8D6E63"), 0, 31.5, dp * .15));
+    for(const x of [-w / 2 + 3, w / 2 - 3]) for(const z of [-dp / 2 + 3, dp / 2 - 3]) g.add(P3(B3(3, 66, 3, "#6D4C41"), x, 33, z));
+    for(let k = 0; k < Math.ceil(w / 20); k++){ const s = P3(B3(Math.min(20, w - k * 20), 2, dp + 14, k % 2 ? "#FFFFFF" : c), -w / 2 + 10 + k * 20, 66, 0); s.rotation.x = .18; g.add(s); }
+    const l = label3(d.label || "", Math.min(80, w * .7), 14, "#FFFFFF", c); l.position.set(0, 56, dp / 2 + 7); g.add(l);
+    const goods = d.goods || ["#FFB300", "#7CB342", "#E53935"]; for(let k = 0; k < Math.floor(w / 18); k++) g.add(P3(S3(5, goods[k % goods.length], 7, 5), -w / 2 + 12 + k * 18, 37, dp * .15 + (k % 2) * 6 - 3));
+    if(d.pots){ const pots = []; for(let k = 0; k < 7; k++){ const p = P3(C3(5, 7, 12, ["#A1887F", "#8D6E63", "#D7A86E"][k % 3], 8), -w / 2 + 16 + k * 24, 6, -dp / 2 - 10); pots.push(p); g.add(p); }
+      g.userData.anim = (t, F) => { if(!F.cartRolled) return; pots.forEach((p, k) => { p.rotation.z = (k % 2 ? 1 : -1) * 1.4; p.position.y = 4; p.scale.y = .5; }); }; }
+    return g; },
+  stage(d, w, dp){ const g = G3(P3(B3(w, 8, dp, "#8D6E63"), 0, 4, 0), P3(B3(w + 4, 2, dp + 4, "#6D4C41"), 0, 9, 0));
+    for(let k = 0; k < 6; k++) g.add(P3(S3(2.5, ["#FF5252", "#FFEB3B", "#69F0AE", "#40C4FF", "#E040FB", "#FFAB40"][k], 6, 4), -w / 2 + 10 + k * (w - 20) / 5, 60 - Math.abs(k - 2.5) * 4, -dp / 2));
+    g.add(P3(B3(w, 1, 1, "#424242"), 0, 58, -dp / 2)); return g; },
+  kiosk(d, w, dp){ const g = G3(P3(B3(w, 34, dp, "#4E7A9E"), 0, 17, 0), P3(B3(w + 6, 3, dp + 6, "#B0BEC5"), 0, 35.5, 0), P3(B3(3, 70, 3, "#37474F"), -w / 2 + 4, 35, -dp / 2 + 4), P3(B3(3, 70, 3, "#37474F"), w / 2 - 4, 35, -dp / 2 + 4));
+    const l = label3(d.label || "RIVER TOURS", 70, 14, "#FFFFFF", "#0277BD"); l.position.set(0, 74, -dp / 2 + 4); g.add(l); return g; },
+  dock(d, w, dp){ const g = new THREE.Group(); for(let k = 0; k < Math.floor(dp / 10); k++) g.add(P3(B3(w, 3, 9, k % 2 ? "#A1887F" : "#B39B87"), 0, 4, -dp / 2 + 5 + k * 10));
+    for(const x of [-w / 2 + 4, w / 2 - 4]) for(let z = -dp / 2 + 10; z < dp / 2; z += 40) g.add(P3(C3(3, 3, 16, "#6D4C41", 6), x, 2, z)); return g; },
+  riverboat(d, w, dp){ const g = new THREE.Group(), boat = new THREE.Group(); g.add(boat);
+    boat.add(P3(B3(w, 14, dp, "#FAFAFA"), 0, -2, 0)); boat.add(P3(B3(w + 2, 4, dp + 2, "#C62828"), 0, -8, 0)); boat.add(P3(B3(w - 6, 2, dp - 6, "#BCAAA4"), 0, 5.5, 0));
+    for(const z of [-dp / 2 + 2, dp / 2 - 2]) for(let x = -w / 2 + 4; x <= w / 2 - 4; x += 14) boat.add(P3(B3(1.5, 14, 1.5, "#ECEFF1"), x, 13, z));
+    for(const z of [-dp / 2 + 2, dp / 2 - 2]) boat.add(P3(B3(w - 4, 1.5, 1.5, "#ECEFF1"), 0, 20, z)); boat.add(P3(B3(1.5, 1.5, dp - 4, "#ECEFF1"), w / 2 - 2, 20, 0));
+    const wh = G3(P3(B3(46, 40, 50, "#ECEFF1"), 0, 26, 0), P3(B3(52, 4, 56, "#1565C0"), 0, 48, 0), P3(B3(1, 16, 40, "#81D4FA"), -23.6, 30, 0)); wh.position.set(w / 2 - 34, 0, 0); boat.add(wh);
+    for(const x of [-30, 0]) boat.add(G3(P3(B3(26, 8, 8, "#8D6E63"), x, 10, dp / 2 - 18), P3(B3(26, 10, 2, "#6D4C41"), x, 15, dp / 2 - 13)));
+    const pole = G3(P3(C3(1.2, 1.4, 90, "#B0BEC5", 6), 0, 45, 0), P3(B3(20, 12, .6, "#1E88E5"), 10, 82, 0)); pole.position.set(-w / 2 + 40, 0, -dp / 2 + 14); boat.add(pole);
+    const l = label3("RIVER QUEEN", 60, 12, "#C62828", "#FFFFFF"); l.position.set(-10, 2, dp / 2 + 1.2); boat.add(l);
+    g.userData.anim = (t, F, dt) => { const tilt = F.tilt ? Math.max(0, 1 - ((t - (g.userData.tt ??= t)) / 6)) : (g.userData.tt = undefined, 0);
+      boat.rotation.x = Math.sin(t * 1.3) * .015 + tilt * .22 * Math.sin(t * 4); const dx = F.hijacked ? Math.min(1400, (boat.position.x + dt * 120)) : F.drift ? Math.min(70, boat.position.x + dt * 25) : Math.max(0, boat.position.x - dt * 30);
+      boat.position.x = dx; boat.position.y = Math.sin(t * 1.7) * .8; }; return g; },
+  pod(d, w, dp){ const g = new THREE.Group(), hs = [];
+    for(let k = 0; k < 5; k++){ const h = new THREE.Group(), c = "#8A7F9A"; h.add(P3(SC3(S3(18, c, 10, 7), 1.5, .5, 1), 0, 0, 0)); h.add(P3(SC3(S3(9, c, 8, 6), 1.2, .8, 1), 22, 4, 0)); h.add(P3(S3(2.4, c, 6, 4), 20, 10, -6)); h.add(P3(S3(2.4, c, 6, 4), 20, 10, 6));
+      h.add(P3(S3(1.4, "#212121", 5, 4), 28, 8, -4)); h.add(P3(S3(1.4, "#212121", 5, 4), 28, 8, 4)); h.position.set(-w / 2 + 40 + (k % 3) * (w - 80) / 2, 0, -dp / 2 + 50 + Math.floor(k / 3) * (dp - 100) + (k % 2) * 20); h.rotation.y = hsh3(k) * 6; g.add(h); hs.push(h); }
+    g.userData.anim = t => hs.forEach((h, k) => { h.position.y = 2 + Math.sin(t * 1.1 + k * 1.7) * 2.2; }); return g; },
+  sacks(d, w, dp){ const g = new THREE.Group(); ["#E65100", "#FBC02D", "#BF360C", "#827717"].forEach((c, k) => { g.add(P3(SC3(C3(8, 10, 18, "#D7CCC8", 8), 1, 1, 1), -w / 2 + 10 + k * 18, 9, 0)); g.add(P3(SC3(S3(8, c, 8, 5), 1, .4, 1), -w / 2 + 10 + k * 18, 18, 0)); }); return g; },
+});
+
+Object.assign(PROPS, {
+  clipboard(){ return G3(P3(B3(9, 1, 12, "#8D6E63"), 0, 1, 0), P3(B3(8, 1.2, 10, "#FFFFFF"), 0, 1.6, .5), P3(B3(4, 1.6, 2, "#B0BEC5"), 0, 2, -5.5)); },
+  drone(){ const g = G3(P3(B3(10, 4, 10, "#ECEFF1"), 0, 0, 0), P3(S3(2, "#212121", 6, 4), 5.5, -1, 0)); const rot = [];
+    for(const [x, z] of [[-9, -9], [9, -9], [-9, 9], [9, 9]]){ g.add(P3(B3(Math.abs(x) + 2, 1, 1.4, "#90A4AE"), x / 2, 0, z / 2)); const r = P3(B3(12, .4, 1.6, "#FF5252"), x, 2, z); g.add(r); rot.push(r); }
+    g.userData.rot = rot; return g; },
+  jar(){ return G3(P3(C3(4.5, 4.5, 11, "#8D6E63", 10, {transparent: true, opacity: .85}), 0, 5.5, 0), P3(C3(4.8, 4.8, 2, "#ECEFF1", 10), 0, 12, 0), P3(B3(.6, 5, 6, "#FFFFFF"), 4.6, 6, 0)); },
+  icetub(){ return G3(P3(B3(20, 14, 14, "#E3F2FD"), 0, 7, 0), P3(B3(21, 3, 15, "#F48FB1"), 0, 15, 0), P3(S3(4, "#FFF59D", 6, 4), -4, 18, 0), P3(S3(4, "#A5D6A7", 6, 4), 4, 18, 0)); },
+  collar(){ const t = new THREE.Mesh(new THREE.TorusGeometry(6, 1.6, 6, 14), m3("#FF6F00")); t.rotation.x = Math.PI / 2; return G3(t, P3(B3(4, 4, 3, "#37474F"), 6, 0, 0), P3(C3(.3, .3, 6, "#212121", 4), 6, 4, 0)); },
+  mango(){ return G3(P3(SC3(S3(5, "#FFB300", 8, 6), 1, .8, 1.2), 0, 4, 0), P3(SC3(S3(3, "#E53935", 6, 4), 1, .6, 1), 2, 6, 1), P3(B3(.8, 2, .8, "#5D4037"), 0, 8.5, 0)); },
+  pricesign(){ return G3(P3(B3(1.2, 26, 1.2, "#5D4037"), 0, 13, 0), P3(B3(18, 11, 1.4, "#FFF59D"), 0, 28, 0), P3(B3(14, 1.6, 1.6, "#E53935"), 0, 29, .8), P3(B3(8, 1.6, 1.6, "#E53935"), 0, 25.5, .8)); },
+  melon(){ return G3(P3(SC3(S3(10, "#2E7D32", 10, 8), 1.25, .9, 1), 0, 9, 0), P3(SC3(S3(10.2, "#66BB6A", 10, 8), 1.24, .2, 1.01), 0, 9, 0)); },
+  basket(){ const t = new THREE.Mesh(new THREE.TorusGeometry(7, .8, 4, 12), m3("#8D6E63")); t.rotation.z = Math.PI / 2; t.position.y = 10; return G3(P3(C3(8, 6, 9, "#D7A86E", 10), 0, 4.5, 0), t); },
+  ribbon(){ return G3(P3(C3(5, 5, 1.2, "#FFD600", 12), 0, 2, 0), P3(B3(3, 1, 8, "#1E88E5"), -1.5, 1.5, 6), P3(B3(3, 1, 8, "#1E88E5"), 1.5, 1.5, 6)); },
+  fcart(){ const g = G3(P3(B3(40, 4, 26, "#8D6E63"), 0, 14, 0), P3(B3(40, 10, 2, "#6D4C41"), 0, 20, 13), P3(B3(40, 10, 2, "#6D4C41"), 0, 20, -13));
+    for(const z of [-14, 14]){ const w = new THREE.Mesh(new THREE.TorusGeometry(7, 1.5, 6, 12), m3("#3E2723")); w.position.set(0, 7, z); g.add(w); }
+    for(let k = 0; k < 9; k++) g.add(P3(S3(4.5, ["#FFB300", "#E53935", "#7CB342"][k % 3], 6, 4), -14 + (k % 5) * 7, 21, -7 + Math.floor(k / 5) * 12)); return g; },
+  capthat(){ return G3(P3(C3(7, 7.5, 5, "#FAFAFA", 12), 0, 2.5, 0), P3(C3(7.6, 7.6, 1.6, "#1A237E", 12), 0, 1, 0), P3(SC3(C3(4, 4, 1, "#212121", 10), 1, 1, .6), 6, .6, 0), P3(B3(4, 2.4, .4, "#FFC107"), 0, 3.6, 7.3)); },
+  bait(){ return G3(P3(C3(7, 6, 12, "#90A4AE", 10), 0, 6, 0), P3(C3(6.6, 6.6, 1, "#6D4C41", 10), 0, 11.6, 0), P3(S3(1.4, "#D84315", 5, 4), 2, 12.6, 1), P3(S3(1.4, "#D84315", 5, 4), -2, 12.6, -1)); },
+  cucumber(){ return G3(P3(SC3(C3(2.4, 2.4, 16, "#558B2F", 8), 1, 1, 1), 0, 2.4, 0).rotateZ(Math.PI / 2), P3(SC3(C3(2.4, 2.4, 16, "#7CB342", 8), 1, 1, 1), 0, 2.4, 5).rotateZ(Math.PI / 2)); },
+  fish(){ return G3(P3(SC3(S3(5, "#90A4AE", 8, 6), 1.8, .7, .5), 0, 3, 0), P3(SC3(C3(0, 4, 5, "#78909C", 4), 1, 1, .4), -10, 3, 0).rotateZ(Math.PI / 2), P3(S3(.9, "#212121", 4, 3), 6, 4, 2)); },
+  megaphone(){ return G3(P3(C3(2, 7, 16, "#FFFFFF", 10), 0, 6, 0).rotateZ(Math.PI / 2), P3(C3(7.2, 7.2, 1.4, "#E53935", 10), 8, 6, 0).rotateZ(Math.PI / 2), P3(B3(2, 6, 2, "#424242"), -4, 1, 0)); },
+});
+
+Object.assign(FIXT, {
+  logger(){ const g = G3(P3(B3(1.5, 22, 1.5, "#616161"), -6, 11, -6), P3(B3(1.5, 22, 1.5, "#616161"), 6, 11, -6), P3(B3(1.5, 22, 1.5, "#616161"), 0, 11, 6), P3(B3(16, 10, 12, "#FFC107"), 0, 24, 0), P3(B3(8, 4, .6, "#263238"), 0, 25, 6.4));
+    const led = P3(S3(1.4, "#4CAF50", 5, 4), 5, 30, 4); g.add(led); g.userData.anim = (t, F) => { led.material = m3(F.beeping ? (Math.sin(t * 20) > 0 ? "#FF1744" : "#FFEB3B") : "#4CAF50"); }; return g; },
+  plug(){ const g = G3(P3(B3(8, 8, 2, "#ECEFF1"), 0, 30, 0)), c = P3(C3(.8, .8, 30, "#212121", 5), 0, 15, 4); g.add(c); const p = P3(B3(4, 4, 4, "#424242"), 0, 30, 2); g.add(p);
+    g.userData.anim = (t, F) => { p.position.set(F.unplugged ? 6 : 0, F.unplugged ? 2 : 30, F.unplugged ? 10 : 2); }; return g; },
+  fridgelatch(){ return G3(P3(B3(4, 6, 4, "#B0BEC5"), 0, 66, 0)); },
+  trailcam(){ const g = G3(P3(C3(2.5, 3, 40, "#6D4C41", 6), 0, 20, 0), P3(B3(10, 12, 8, "#33691E"), 0, 44, 3), P3(C3(2.6, 2.6, 2, "#212121", 8), 0, 44, 7.6).rotateX(Math.PI / 2), P3(B3(16, 2, 10, "#5D4037"), 0, 30, 6));
+    const fl = P3(S3(2, "#FFFFFF", 6, 4, {transparent: true, opacity: 0}), 0, 48, 7.5); g.add(fl); g.userData.anim = (t, F) => { fl.material = m3("#FFFFFF", {transparent: true, opacity: (F.camFlash || 0) > 0 && Math.sin(t * 30) > 0 ? .9 : 0}); }; return g; },
+  pyramid(){ const g = new THREE.Group(), fr = []; const cols = ["#FF8F00", "#FFB300", "#7CB342", "#E53935"];
+    g.add(P3(B3(40, 26, 40, "#8D6E63"), 0, 13, 0)); let k = 0; for(let lv = 0; lv < 4; lv++){ const n = 4 - lv; for(let i = 0; i < n; i++) for(let j = 0; j < n; j++){ const f = P3(S3(4.5, cols[k++ % 4], 6, 4), (i - (n - 1) / 2) * 8.5, 30 + lv * 7.5, (j - (n - 1) / 2) * 8.5); f.userData.p = f.position.clone(); g.add(f); fr.push(f); } }
+    g.userData.anim = (t, F) => { fr.forEach((f, i) => { if(F.pyramid){ const a = hsh3(i) * 6.28, r = 20 + hsh3(i + 3) * 40; f.position.set(Math.cos(a) * r, 4.5, Math.sin(a) * r); } else f.position.copy(f.userData.p); }); }; return g; },
+  drum(){ const g = G3(P3(C3(11, 10, 20, "#C62828", 14), 0, 18, 0), P3(C3(11.4, 11.4, 1.2, "#FFF8E1", 14), 0, 28.6, 0), P3(C3(11.6, 11.6, 2, "#FFD54F", 14), 0, 9, 0));
+    g.userData.anim = (t, F) => { g.scale.y = F.drumSat ? .55 : 1; }; return g; },
+  spice(){ const g = DECO3.sacks({}, 74, 20); const cloud = P3(SC3(S3(30, "#FFB74D", 8, 6, {transparent: true, opacity: .45}), 1.6, .8, 1.2), 0, 30, 30); g.add(cloud);
+    g.userData.anim = (t, F) => { cloud.visible = !!F.sneezeT && F.sneezeT > 0; g.children.forEach((c, i) => { if(c !== cloud && F.spilled) c.rotation.z = i % 2 ? .9 : -.9; }); }; return g; },
+  rope(){ const g = G3(P3(C3(4, 5, 12, "#424242", 8), 0, 6, 0), P3(C3(5.4, 5.4, 2, "#616161", 8), 0, 12.5, 0)); const r = P3(C3(.9, .9, 60, "#D7CCC8", 5), 30, 10, 0); r.rotation.z = Math.PI / 2; g.add(r);
+    g.userData.anim = (t, F, n) => { r.rotation.y = F.untied ? .8 : 0; r.position.y = F.untied ? 2 : 10; }; return g; },
+  wheel(){ const t = new THREE.Mesh(new THREE.TorusGeometry(9, 1.2, 6, 14), m3("#8D6E63")); t.position.y = 34; const g = G3(P3(B3(4, 26, 4, "#6D4C41"), 0, 13, 0), t);
+    for(let k = 0; k < 4; k++){ const s = P3(B3(20, 1.4, 1.4, "#6D4C41"), 0, 34, 0); s.rotation.z = k * Math.PI / 4; g.add(s); } t.rotation.y = Math.PI / 2; g.children.slice(2).forEach(s => s.rotation.y = Math.PI / 2); return g; },
+});
 
 /* ---- people ---- */
 function human(look){
@@ -2136,6 +2593,10 @@ class R3 {
       if(kind === "mud"){ const sh = new THREE.Shape(); const cx = x + w / 2, cy = y + h / 2; for(let k = 0; k <= 20; k++){ const a = k / 20 * Math.PI * 2, rr = 1 + Math.sin(a * 3) * .08 + Math.cos(a * 5) * .05; const px = Math.cos(a) * w / 2 * rr, py = Math.sin(a) * h / 2 * rr; k ? sh.lineTo(px, py) : sh.moveTo(px, py); }
         const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), m3("#6B4423")); m.rotation.x = -Math.PI / 2; m.position.set(cx, 1.6, cy); m.receiveShadow = true; S.add(m);
         for(let k = 0; k < 9; k++){ const b = P3(SC3(S3(6 + hsh3(k) * 6, "#5A3A1E", 7, 5), 1, .35, 1), cx + (hsh3(k + 2) - .5) * w * .7, 1.5, cy + (hsh3(k + 5) - .5) * h * .7); S.add(b); } continue; }
+      if(kind === "pond" || kind === "river"){ const g = new THREE.Group(); g.add(P3(B3(w, 1, h, kind === "river" ? "#3E8FB0" : "#5D9BA8"), w / 2, .5, h / 2));
+        const wat = new THREE.Mesh(new THREE.BoxGeometry(w, 1, h), new THREE.MeshLambertMaterial({color: kind === "river" ? "#4AA8D8" : "#62B8CF", transparent: true, opacity: .8})); wat.position.set(w / 2, 3, h / 2); g.add(wat);
+        if(kind === "pond") for(let k = 0; k < 16; k++){ const a = k / 16 * Math.PI * 2; g.add(P3(SC3(S3(7 + hsh3(k) * 5, "#9E9A8E", 6, 4), 1, .5, 1), w / 2 + Math.cos(a) * w / 2, 2, h / 2 + Math.sin(a) * h / 2)); }
+        g.position.set(x, 0, y); S.add(g); this.waters.push({wat, jets: new THREE.Group(), w, h, base: 3}); continue; }
       const rim = "#B8B2A6", g = new THREE.Group();
       g.add(P3(B3(w + 16, 14, 8, rim), w / 2, 7, -4)); g.add(P3(B3(w + 16, 14, 8, rim), w / 2, 7, h + 4)); g.add(P3(B3(8, 14, h, rim), -4, 7, h / 2)); g.add(P3(B3(8, 14, h, rim), w + 4, 7, h / 2));
       g.add(P3(B3(w, 2, h, "#7FA9B8"), w / 2, 1, h / 2));
@@ -2171,7 +2632,7 @@ class R3 {
   }
   buildActors(){
     const A = this.A, S = this.s;
-    this.objM = {}; for(const o of A.objs){ const mk = PROPS[o.m]; const g = mk ? mk() : B3(14, 14, 14, "#FF00FF"); g.traverse(m => { if(m.isMesh) m.castShadow = true; }); g.userData.yaw = (strHash(o.id) % 628) / 100; if(o.scale) g.scale.setScalar(o.scale); S.add(g); this.objM[o.id] = g; }
+    this.objM = {}; for(const o of A.objs){ const mk = PROPS[o.m]; const g = mk ? mk() : B3(14, 14, 14, "#FF00FF"); g.traverse(m => { if(m.isMesh) m.castShadow = true; }); g.userData.yaw = (strHash(o.id) % 628) / 100; if(o.scale) g.scale.setScalar(o.scale); if(o.col) g.traverse(m => { if(m.isMesh && m.material.color && m.material.color.getHexString() === "fff59d") m.material = m3(o.col); }); S.add(g); this.objM[o.id] = g; }
     this.npcM = {}; for(const n of A.npcs){ const h = human(n.look); S.add(h.g); this.npcM[n.id] = h; }
     this.an = {G: makeGinger(), H: makeHarriet()}; S.add(this.an.G.g); S.add(this.an.H.g);
     const blob = new THREE.Mesh(new THREE.CircleGeometry(1, 16), new THREE.MeshBasicMaterial({color: "#000", transparent: true, opacity: .0}));
@@ -2191,16 +2652,18 @@ class R3 {
     this.cam.position.set(this.tgt.x, Math.sin(pitch) * D, this.tgt.z - 50 + Math.cos(pitch) * D); this.cam.lookAt(this.tgt.x, 18, this.tgt.z - 70);
     this.sun.position.set(this.tgt.x - 260, 620, this.tgt.z + 160); this.sun.target.position.copy(this.tgt);
     // walls between the camera and you drop to a stub
-    const me = p.a; for(const w of this.walls){ const [x, y, ww, hh] = w.r; const block = w.horiz ? (y > me.y - 6 && y - me.y < 520 && me.x > x - 140 && me.x < x + ww + 140) : false;
+    const me = p.a; for(const w of this.walls || []){ const [x, y, ww, hh] = w.r; const block = w.horiz ? (y > me.y - 6 && y - me.y < 520 && me.x > x - 140 && me.x < x + ww + 140) : false;
       const s = block ? .14 : 1; w.g.scale.y += (s - w.g.scale.y) * Math.min(1, dt * 8); }
     for(const d of this.doors){ const want = F[d.d.flag] ? 1 : 0; d.open += (want - d.open) * Math.min(1, dt * 3); for(const L of d.leaves) L.hinge.rotation.y = L.s * d.open * 1.75;
       const [x, y, ww] = d.d.r, block = y > me.y - 6 && y - me.y < 520 && me.x > x - 140 && me.x < x + ww + 140; for(const L of d.leaves) L.hinge.scale.y += ((block ? .14 : 1) - L.hinge.scale.y) * Math.min(1, dt * 8); d.lint.visible = d.leaves[0].hinge.scale.y > .6; }
-    for(const dc of this.decos){ if(dc.g.userData.leaf){ const want = F.poolGate ? -1.6 : 0; dc.g.userData.leaf.rotation.y += (want - dc.g.userData.leaf.rotation.y) * Math.min(1, dt * 2); } }
-    for(const w of this.waters){ w.wat.position.y = 9 + Math.sin(t * 2) * .4; w.jets.children.forEach((j, k) => { const ph = (t * .9 + k / 10) % 1, a = k / 10 * Math.PI * 2; j.position.set(Math.cos(a) * 6 * ph * 2, 44 + Math.sin(ph * Math.PI) * 10 - ph * 24, Math.sin(a) * 6 * ph * 2); }); }
+    this.F = F; for(const dc of this.decos){ if(dc.g.userData.anim) dc.g.userData.anim(t, F, dt, p); if(dc.g.userData.leaf){ const want = F.poolGate ? -1.6 : 0; dc.g.userData.leaf.rotation.y += (want - dc.g.userData.leaf.rotation.y) * Math.min(1, dt * 2); } }
+    for(const w of this.waters){ w.wat.position.y = (w.base ?? 9) + Math.sin(t * 2) * .4; w.jets.children.forEach((j, k) => { const ph = (t * .9 + k / 10) % 1, a = k / 10 * Math.PI * 2; j.position.set(Math.cos(a) * 6 * ph * 2, 44 + Math.sin(ph * Math.PI) * 10 - ph * 24, Math.sin(a) * 6 * ph * 2); }); }
     for(const tr of this.trees){ tr.rotation.z = Math.sin(t * .8 + tr.userData.sway) * .015; }
     // fixtures
     for(const f of A.fix){ const g = this.fixM[f.id]; if(!g) continue; if(f.id === "tags"){ const o = p.objView().find(o => o.id === "lcart"); if(o){ g.position.set(o.x, 0, o.y); g.rotation.y = -(this.objM.lcart.rotation.y ? -this.objM.lcart.rotation.y : 0); }
         const n = p.fixN("tags"); g.children.forEach((c, k) => { c.rotation.x = Math.sin(t * 3 + k) * .2; c.material = m3(n ? ["#FFAB91", "#CE93D8", "#A5D6A7"][k] : ["#FFF59D", "#FFFFFF", "#B3E5FC"][k]); }); }
+      if(g.userData.anim) g.userData.anim(t, this.F || {}, p.fixN(f.id));
+      if(f.id === "stack"){ const down = p.fixN("stack") > 0; g.children.forEach((c, k) => { c.rotation.z = down ? [.3, 1.2, -1.4][k] : 0; c.position.x = down ? [-8, 18, 34][k] : [0, 2, -1][k]; c.position.y = down ? [11, 9, 7][k] : [11, 31, 47][k]; }); }
       if(f.id === A.pen?.gate){ const shut = F.pen_G || F.pen_H; if(shut){ g.position.set(f.x, 0, f.y); g.rotation.y = 0; } else { g.position.set(f.x - 26, 0, f.y - 34); g.rotation.y = Math.PI / 2; } }
       if(f.id === "tags" && g.children[0]) g.children[0].visible = !(F.tagOff && !F.tagsSwapped);
       if(f.label2 && g.userData.lab && !g.userData.swapped && p.fixN(f.id) >= (f.need || 1)){ g.userData.swapped = 1; const l = label3(f.label2, 50, 16, "#FFF8E1", "#AD1457"); l.position.copy(g.userData.lab.position); g.remove(g.userData.lab); g.add(l); } }
@@ -2220,7 +2683,7 @@ class R3 {
       this.place("b" + n.id, "bub3", n.x, top + (n.emo || n.st === "chase" || n.st === "investigate" ? 26 : 6), n.y, n.bub ? esc(n.bub.txt) : null); }
     // objects
     const objs = p.objView(), npcById = Object.fromEntries(npcs.map(n => [n.id, n]));
-    for(const o of objs){ const g = this.objM[o.id]; if(!g) continue; g.visible = !o.gone; if(o.gone) continue; this.poseObj(g, o, states, npcById, t); }
+    this._cart = objs.find(o => o.id === "lcart"); for(const o of objs){ const g = this.objM[o.id]; if(!g) continue; g.visible = !o.gone; if(o.gone) continue; this.poseObj(g, o, states, npcById, t); }
     // names
     this.place("me", "nm3 me", p.a.x, p.role === "G" ? 120 : 64, p.a.y, "You");
     this.place("pa", "nm3", pa ? pa.x : 0, p.prole === "G" ? 120 : 64, pa ? pa.y : 0, pa ? esc(R.players?.[p.pp]?.name || PNAME[p.prole]) : null);
@@ -2258,8 +2721,14 @@ class R3 {
       g.position.set(mp.x, mp.y - (def.m === "pail" ? 16 : 3), mp.z); g.rotation.set(0, -a.d, Math.sin(t * 7) * .06); return; }
     if(o.worn === "G" || o.worn === "H"){ const m = this.an[o.worn]; m.g.updateMatrixWorld(true); const tp = m.top.getWorldPosition(this.v); g.position.copy(tp); g.rotation.y = m.g.rotation.y; if(def.m === "flower"){ g.translateZ(5); g.position.y -= 3; g.rotation.z = -.5; } return; }
     if(o.holder && npcById[o.holder]){ const h = this.npcM[o.holder]; h.g.updateMatrixWorld(true);
+      if(def.neck){ const hp = h.head.getWorldPosition(this.v); g.position.set(hp.x, hp.y - 9, hp.z); g.rotation.y = h.g.rotation.y; return; }
       if(hat && (def.on === o.holder || o.fixed)){ const hp = h.head.getWorldPosition(this.v); g.position.set(hp.x, hp.y + 5, hp.z); g.rotation.y = h.g.rotation.y; return; }
       const hp = h.armR.localToWorld(new THREE.Vector3(2, -20, 2)); g.position.copy(hp); g.position.y -= 4; g.rotation.y = h.g.rotation.y; return; }
+    if(def.fly && !o.holder && !o.worn){ const down = this.F?.[def.fly]; g.position.set(o.x, down ? 2 : (o.high ? 78 : 36) + Math.sin(t * 4) * 2, o.y); g.rotation.set(0, t * (down ? 0 : .6), 0); if(g.userData.rot) g.userData.rot.forEach(r => r.rotation.y = down ? 0 : t * 40); return; }
+    if(def.cartTag != null && this._cart){ const dx = o.x - this._cart.x, dy = o.y - this._cart.y;
+      if(Math.hypot(dx, dy) < 22){ let k = 0, bd = 1e9; TAG_OFF.forEach((f, i) => { const d = Math.hypot(f[0] - dx, f[1] - dy); if(d < bd){ bd = d; k = i; } });
+        const cg = this.objM.lcart, ry = cg ? cg.rotation.y : 0, ox = TAG_OFF[k][0], oz = TAG_OFF[k][1];
+        g.position.set(this._cart.x + ox * Math.cos(ry) + oz * Math.sin(ry), TAG_H[k], this._cart.y - ox * Math.sin(ry) + oz * Math.cos(ry)); g.rotation.set(Math.sin(t * 3 + k) * .25, ry, 0); return; } }
     const nearHome = def.x != null && Math.hypot(o.x - def.x, o.y - def.y) < 30, onDesk = !!this.A.zones.desktop && inRect(o.x, o.y, this.A.zones.desktop);
     g.position.set(o.x, o.high && (nearHome || onDesk) ? (nearHome ? (def.hy || 42) : 42) : 0, o.y);
     if(def.heavy) g.rotation.y = g.userData.yaw * .3;
@@ -2455,21 +2924,24 @@ class Play {
     sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden");
   }
   finishCard(){
-    if(this.dead || this.w.querySelector(".done-card")) return; SFX.big(); const ai = this.ai, last = ai >= AREAS.length - 1, g = galleryHTML(ai);
+    if(this.dead || this.w.querySelector(".done-card")) return; SFX.big(); const ai = this.ai, nx = nextArea(ai), last = nx < 0, g = galleryHTML(ai);
     const c = el(`<div class="done-card"><div class="card center"><h2>${esc(this.A.name)} wrecked!</h2><p>To-do list done.</p>
       ${g || `<p class="muted">No photobombs in this area.</p>`}
-      <button class="btn" data-n>${last ? "Steal a jeep and escape!" : "Next: " + esc(AREAS[ai + 1].name)}</button></div></div>`);
+      <button class="btn" data-n>${last ? "Steal a jeep and escape!" : "Next: " + esc(AREAS[nx].name)}</button></div></div>`);
     c.querySelector("[data-n]").onclick = e => { e.target.disabled = true; e.target.textContent = "Loading…";
-      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(last) cur.phase = "jeep"; else cur.area = ai + 1; }).catch(() => { e.target.disabled = false; e.target.textContent = "Try again"; }); };
+      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(last) cur.phase = "jeep"; else cur.area = nx; }).catch(() => { e.target.disabled = false; e.target.textContent = "Try again"; }); };
     this.w.append(c);
   }
   menu(){
     const sh = this.w.querySelector(".sheet"); this.sheetMode = "menu";
-    sh.innerHTML = `<div class="sheet-in"><h2>Paused?</h2><p class="muted">Game code <b>${S.code}</b>. Progress saves automatically. Rejoin anytime with this code and your name.</p><div class="sndpanel">${soundPanelHTML()}</div><button class="btn" data-x>Keep playing</button><button class="btn ghost" data-l>Leave game</button><button class="btn ghost" data-reset>↺ Reset objects (keeps your pranks)</button><button class="btn ghost" data-skip>⏭ Skip this area</button></div>`;
+    sh.innerHTML = `<div class="sheet-in"><h2>Paused?</h2><p class="muted">Game code <b>${S.code}</b>. Progress saves automatically. Rejoin anytime with this code and your name.</p><div data-goto></div><div class="sndpanel">${soundPanelHTML()}</div><button class="btn" data-x>Keep playing</button><button class="btn ghost" data-l>Leave game</button><button class="btn ghost" data-reset>↺ Reset objects (keeps your pranks)</button><button class="btn ghost" data-skip>⏭ Skip this area</button></div>`;
     sh.classList.remove("hidden"); sh.querySelector("[data-x]").onclick = () => sh.classList.add("hidden"); sh.querySelector("[data-l]").onclick = leave;
     sh.querySelector("[data-reset]").onclick = () => { if(!confirm("Put every object and person back where they started? Finished pranks stay finished.")) return; sh.classList.add("hidden"); api.update(rid(S.code), {reset: {a: this.ai, t: Date.now()}}).catch(() => {}); };
-    sh.querySelector("[data-skip]").onclick = () => { const ai = this.ai, last = ai >= AREAS.length - 1; if(!confirm(last ? "Skip to the jeep escape?" : `Skip ${this.A.name} and go to ${AREAS[ai + 1].name}?`)) return; sh.classList.add("hidden");
-      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(last) cur.phase = "jeep"; else cur.area = ai + 1; }).catch(() => {}); };
+    sh.querySelector("[data-skip]").onclick = () => { const ai = this.ai, nx = nextArea(ai), last = nx < 0; if(!confirm(last ? "Skip to the jeep escape?" : `Skip ${this.A.name} and go to ${AREAS[nx].name}?`)) return; sh.classList.add("hidden");
+      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(last) cur.phase = "jeep"; else cur.area = nx; }).catch(() => {}); };
+    const go = sh.querySelector("[data-goto]"); if(go) go.innerHTML = `<p class="muted" style="margin:10px 0 4px">Go to an area</p>` + ORDER().map(i => `<button class="btn ghost" data-ai="${i}"${i === this.ai ? " disabled" : ""}>Area ${areaNo(i)} · ${esc(AREAS[i].name)}</button>`).join("") + `<button class="btn ghost" data-ai="jeep">🚙 Jeep escape</button>`;
+    sh.querySelectorAll("[data-ai]").forEach(b => b.onclick = () => { const v = b.dataset.ai, ai = this.ai; if(!confirm(v === "jeep" ? "Go to the jeep escape?" : `Go to Area ${areaNo(+v)} · ${AREAS[+v].name}?`)) return; sh.classList.add("hidden");
+      api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(v === "jeep") cur.phase = "jeep"; else cur.area = +v; }).catch(() => {}); });
     bindSoundPanel(sh, (k, on) => { if(k === "music" && on) MUSIC.play(this.ai % TUNES.length); if(k === "amb" && on) AMB.play(this.A.amb); });
   }
 }
