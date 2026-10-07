@@ -1791,7 +1791,7 @@ area({
     {r: [500, 470, 180, 110], m: "rug", c: "#2E7D6B", c2: "#E9C46A"}, {r: [160, 380, 160, 160], m: "rug", c: "#B23A48", c2: "#F4A261"}, {r: [850, 300, 240, 290], m: "rug", c: "#5D3A6E", c2: "#E9C46A"},
     {r: [445, 290, 24, 24], m: "plant"}, {r: [748, 590, 24, 24], m: "plant"}, {r: [1070, 288, 24, 24], m: "plant"}, {r: [384, 590, 24, 24], m: "plant"},
     {r: [120, 655, 150, 50], m: "flowerbed"}, {r: [950, 655, 150, 50], m: "flowerbed"}, {r: [420, 1170, 130, 44], m: "flowerbed"}, {r: [690, 1170, 130, 44], m: "flowerbed"},
-    {r: [520, 1000, 22, 22], m: "lamp"}, {r: [700, 1000, 22, 22], m: "lamp"}, {r: [600, 700, 40, 26], m: "bench"}, {r: [880, 760, 40, 26], m: "bench"},
+    {r: [600, 700, 40, 26], m: "bench"}, {r: [880, 760, 40, 26], m: "bench"},
   ],
   fix: [
     {id: "deskbell", m: "deskbell", x: 590, y: 446, r: 14},
@@ -2192,15 +2192,15 @@ class World {
     if(s.st){ n.st = s.st; n.script = null; return; }
     next();
   }
-  dragTo(n, role, o){ // the staff member marches you, by the scruff, to this area's pen
-    const P = this.A.pen; if(!P || !P.drop) return false; const pth = findPath(this.G, n.x, n.y, P.drop[0], P.drop[1]); const end = pth && pth[pth.length - 1];
-    if(!pth || !pth.length || Math.hypot(end.x - P.drop[0], end.y - P.drop[1]) > 40) return false;
+  dragTo(n, role, o){ // caught twice: a puff of dust and you're in this area's pen; the staff member walks over and stands guard
+    const P = this.A.pen; if(!P) return false; const a = this.P[role]; if(!a) return false;
     if(o){ o.worn = ""; if(o.homeOn) o.holder = o.homeOn; else { o.holder = ""; o.x = o.home[0]; o.y = o.home[1]; o.high = (this.A.objs.find(q => q.id === o.id) || {}).high; } }
-    const self = this; this.flag["drag_" + role] = n.id; this.emit("drag", {who: role, obj: n.id});
-    this.script(n.id, [{say: "That's it. You're coming with me!", t: 2, s: "hey"}, {go: P.drop},
-      {do: () => { self.flag["drag_" + role] = 0; self.flag["pen_" + role] = 1; self.penT[role] = self.t; self.emit("pen", {who: role}); }},
-      {say: "And STAY in there!", t: 2, s: "grumble"},
-      {do: (W, m) => { m.home0 = m.home0 || m.home.slice(); m.face0 = m.face0 ?? m.face; m.home = [P.guard[0], P.guard[1]]; m.face = P.guard[2]; m.guardUntil = self.t + 40; }}, {st: "post"}]);
+    this.emit("dust", {x: a.x, y: a.y}); this.flag["pen_" + role] = 1; this.penT[role] = this.t; this.emit("pen", {who: role}); this.emit("dust", {x: P.r[0] + P.r[2] / 2, y: P.r[1] + P.r[3] / 2});
+    this.say(n.id, "That's it. Into the " + (P.label || "pen") + " with you!", 2.4, "hey"); const self = this;
+    const pth = P.drop && findPath(this.G, n.x, n.y, P.drop[0], P.drop[1]), end = pth && pth[pth.length - 1];
+    if(pth && pth.length && Math.hypot(end.x - P.drop[0], end.y - P.drop[1]) < 40)
+      this.script(n.id, [{wait: 1}, {go: P.drop}, {say: "And STAY in there!", t: 2, s: "grumble"},
+        {do: (W, m) => { m.home0 = m.home0 || m.home.slice(); m.face0 = m.face0 ?? m.face; m.home = [P.guard[0], P.guard[1]]; m.face = P.guard[2]; m.guardUntil = self.t + 40; }}, {st: "post"}]);
     return true; }
   caught(n, role){ // they take it back; a second catch within a minute means the pen
     const a = this.P[role]; const dx = a.x - n.x, dy = a.y - n.y, d = Math.hypot(dx, dy) || 1;
@@ -2883,10 +2883,12 @@ function animLife(m, a, t, dt, F, R3i){
   L.look += ((L.lookTo || 0) - L.look) * Math.min(1, dt * 3); m.head.rotation.y = L.look;
   if(!!a.sit !== L.wasSit){ L.sq = 1; L.wasSit = !!a.sit; } L.sq = Math.max(0, L.sq - dt * 4);
   const breathe = Math.sin(t * 2.2) * .012, sq = Math.sin(L.sq * Math.PI) * .12; m.body.scale.set(1 + sq * .6, 1 - sq + breathe, 1 + sq * .6);
-  m.legs.forEach((Lg, i) => { const k = Lg.userData.knee; if(k) k.rotation.z = a.sit ? (i < 2 ? 1.1 : -1.4) : a.mv ? Math.max(0, Math.sin(t * (a.r ? 17 : 11) + (i === 0 || i === 3 ? 0 : Math.PI))) * -.5 : 0; });
+  m.legs.forEach((Lg, i) => { const k = Lg.userData.knee; if(k) k.rotation.z = a.sit ? 0 : a.mv ? Math.max(0, Math.sin(t * (a.r ? 17 : 11) + (i === 0 || i === 3 ? 0 : Math.PI))) * -.5 : 0; });
   if(m.kind === "H"){ if(L.idle > 6 && t > L.yawnAt){ L.yawnAt = t + 14 + Math.random() * 10; L.yawn = 1; } L.yawn = Math.max(0, L.yawn - dt * .6);
     if(L.yawn > 0) m.jaw.rotation.z = -Math.sin(L.yawn * Math.PI) * 1.05; }
-  if(m.kind === "G" && a.sit && a.w){ // ducking under: just the neck and head stay above the water, like a periscope
+  const under = !!(a.sit && a.w); if(m.under !== under){ m.under = under; const keep = m.kind === "G" ? m.neck : m.head; m.body.children.forEach(c => { if(c !== keep) c.visible = !under; }); }
+  if(m.kind === "H" && under){ m.body.position.y += (-27 - m.body.position.y) * Math.min(1, dt * 6); }
+  if(m.kind === "G" && under){ // ducking under: just the neck and head stay above the water, like a periscope
     m.body.position.y += (-60 - m.body.position.y) * Math.min(1, dt * 6); m.len += (52 - m.len) * Math.min(1, dt * 6);
     m.neck.rotation.z += (-.02 - m.neck.rotation.z) * Math.min(1, dt * 6); m.nk.scale.y = m.len; m.mane.scale.y = m.len; m.head.position.set(1, m.len + 3, 0); m.head.rotation.z = -m.neck.rotation.z - .1;
     m.nsp.forEach((s, k) => s.position.set(4.4 * (k % 2 ? 1 : -1) * .9, m.len * (k + 1) / 7, (k % 2 ? 3.3 : -3.3)));
@@ -2948,6 +2950,9 @@ const DECOR = {
     for(let k = 0; k < 6; k++){ const s = P3(B3(236 - k * 2, 3.4, 13, ["#D8B46A", "#C9A15A", "#BE9550"][k % 3]), 0, -k * 2.6, -26 + k * 10); s.rotation.x = .28; aw.add(s); }
     for(let k = 0; k < 40; k++){ const c = P3(new THREE.Mesh(new THREE.ConeGeometry(2.6, 9, 4), m3(k % 2 ? "#C9A15A" : "#B38946")), -114 + k * 5.85, -19, 30); c.rotation.x = Math.PI; aw.add(c); }
     aw.add(P3(B3(240, 5, 5, dark), 0, 2, -28)); aw.add(P3(B3(240, 4, 4, dark), 0, -15, 26));
+    for(const lx of [-72, 72]){ const ln = new THREE.Group(); ln.position.set(lx, -17, 26); aw.add(ln); ln.add(P3(CY(.5, .5, 9, "#3E2723", 6), 0, -4.5, 0)); ln.add(P3(CY(4.6, 3.6, 2, "#3E2723", 8), 0, -10, 0));
+      ln.add(P3(new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.4, 9, 8), new THREE.MeshBasicMaterial({color: "#FFD27A"})), 0, -15.5, 0)); for(let k = 0; k < 4; k++){ const a = k / 4 * 6.283 + .4; ln.add(P3(B3(.8, 10, .8, "#3E2723"), Math.cos(a) * 3.8, -15.5, Math.sin(a) * 3.8)); }
+      ln.add(P3(CY(1, 4.4, 3, "#3E2723", 8), 0, -21.5, 0)); }
     // windows along the outer walls
     const win = (x, y, z, rot) => { const w = new THREE.Group(); w.position.set(x, 38, y); w.rotation.y = rot; w.add(P3(B3(34, 28, 2, dark), 0, 0, z)); const gl = P3(B3(28, 22, 2.4, "#9FD3EA"), 0, 0, z); gl.userData.noBatch = 0; w.add(gl);
       w.add(P3(B3(1.6, 22, 2.8, dark), 0, 0, z)); w.add(P3(B3(28, 1.6, 2.8, dark), 0, 0, z)); w.add(P3(B3(38, 3, 6, wood), 0, -15, z + 2)); for(let k = 0; k < 3; k++) w.add(P3(SM(3, ["#F48FB1", "#FFD54F", "#CE93D8"][k], 8, 6), -10 + k * 10, -12, z + 4)); root.add(w); };
@@ -3124,8 +3129,8 @@ class R3 {
     for(const d of A.deco){ const [x, y, w, h] = d.r, f = DECO3[d.m]; if(!f) continue; let g;
       if(d.m === "door" || d.m === "lift" || d.m === "exitgate") g = f(d, w, h);
       else { const horiz = w >= h; g = f(d, horiz ? w : h, horiz ? h : w); if(!horiz) g.rotation.y = Math.PI / 2; if(d.m === "chair") g.rotation.y = 0; }
-      if(d.m === "desk" || d.m === "shelf") g.rotation.y = d.m === "desk" ? 0 : 0;
-      g.position.set(x + w / 2, 0, y + h / 2); if(d.m === "shelf"){ g.rotation.y = 0; } this.s.add(g); this.decos.push({d, g}); }
+      if(d.m === "desk" || (d.m === "shelf" && w >= h)) g.rotation.y = 0;
+      g.position.set(x + w / 2, 0, y + h / 2); if(d.m === "shelf" && w >= h){ g.rotation.y = 0; } this.s.add(g); this.decos.push({d, g}); }
     // scene dressing, then merge everything that never moves
     const dec = DECOR[A.decor]?.(S, A) || {}; const still = this.decos.filter(x => !x.g.userData.anim && !x.g.userData.leaf).map(x => x.g);
     batchStatic(S, [...(dec.batch || []), ...still, ...(this.statics || [])]); addGrass(S, A); this.cutG = dec.cut || [];
@@ -3388,7 +3393,7 @@ class Play {
         if(mine){ this.kb = {x: bx, y: by, t: .35}; this.stun = .9; this.a.c = 0; this.chargeT = 0; this.a.sit = 0; SFX.bonk(); } }
       if(e.k === "taken" && mine) this.toast("Caught! They took it back.");
       if(e.k === "shoo" && mine){ const p = this.A.entrance || this.A.start[this.role]; setTimeout(() => { this.a.x = p[0]; this.a.y = p[1]; this.kb = null; }, 400); SFX.shoo(); this.toast("Shooed back to the entrance!"); }
-      if(e.k === "pen" && mine){ const r = this.A.pen.r; setTimeout(() => { this.a.x = r[0] + r[2] / 2; this.a.y = r[1] + r[3] / 2; this.kb = null; }, 400); SFX.pen(); this.toast(`Locked in the pen! ${PNAME[this.prole]} has to open the gate.`); }
+      if(e.k === "pen" && mine){ const r = this.A.pen.r; setTimeout(() => { this.a.x = r[0] + r[2] / 2; this.a.y = r[1] + r[3] / 2; this.a.sit = 0; this.kb = null; }, 250); SFX.pen(); this.toast(`Locked in the pen! ${PNAME[this.prole]} has to open the gate.`); }
       if(e.k === "pen" && !mine){ SFX.pen(); this.toast(`${PNAME[e.who]} got locked in the pen! Sneak to the gate and Grab it.`); }
       if(e.k === "free"){ SFX.done(); this.toast(mine ? "You're free!" : `You freed ${PNAME[e.who]}!`); }
     }
