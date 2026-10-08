@@ -1980,13 +1980,14 @@ area({
     {id: "whistle", m: "p_whistle", on: "guard", snatch: true, own: "guard", guard: "never", r: 8},
     {id: "cookoil", m: "p_oil", x: 590, y: 366, high: true, own: "bar", hy: 40, r: 8},
     {id: "sunoil", m: "p_sunoil", x: 300, y: 470, own: "sun1", r: 8},
-    {id: "cucs", m: "cucumber", on: "sleeper", snatch: true, own: "sleeper", guard: "snoring", r: 8},
+    {id: "cucs", m: "cucumber", on: "sleeper", snatch: true, own: "sleeper", guard: "snoring", guardAll: true, r: 8},
     {id: "robe", m: "p_robe", x: 1110, y: 600, high: true, hy: 40, wear: true, wearBy: "G", disguise: true, own: "spa", r: 12},
     {id: "flamingo", m: "p_flamingo", x: 700, y: 700, r: 16},
+    {id: "hplush", m: "p_hplush", on: "k2", snatch: true, own: "k2", r: 10, name: "toy hippo"},
     ...[[980, 1060], [1060, 1060], [150, 470], [150, 680]].map(([x, y], i) => ({id: "pflower" + (i + 1), m: "flower", x, y, r: 8, col: ["#FFD54F", "#CE93D8", "#FF8A65", "#81D4FA"][i], colFrom: "f48fb1"})),
   ],
   npcs: [
-    {id: "guard", look: "lifeguard", x: 852, y: 520, beh: "sit", face: Math.PI, staff: true, name: "Lifeguard",
+    {id: "guard", look: "lifeguard", x: 852, y: 520, beh: "sit", face: Math.PI, staff: true, name: "Lifeguard", seatY: 54,
       hints: [{p: "whistle", t: "Every so often I climb down and skim the leaves. Whistle goes on the hook."}, {p: "drown", t: "If I hear a cry for help from the deep end, I'm in there. No hesitation."}]},
     {id: "bar", look: "bartender", x: 600, y: 322, beh: "post", face: Math.PI / 2, staff: true, name: "Bartender",
       hints: [{p: "oil", t: "When this blender's going, I can't hear or see a thing."}, {p: "oil", t: "Cooking oil's for the fries. Don't mix it up with the suntan oil!"}]},
@@ -2064,14 +2065,204 @@ area({
   ],
 });
 
-/* ===== Area 3: The Grounds (placeholder) ===== */
+
+/* ===== Area 3: The Grounds ===== */
+const CHICKS = ["ch1", "ch2", "ch3", "ch4"], GBALLS = ["ball1", "ball2", "ball3", "pball"];
+const grFacing = (W, id, x, y, d = 240) => { const n = W.npc(id); if(!n) return false; const dx = x - n.x, dy = y - n.y, D = Math.hypot(dx, dy); if(D > d) return false; let a = Math.atan2(dy, dx) - n.dir; a = Math.atan2(Math.sin(a), Math.cos(a)); return Math.abs(a) < 1.15; };
+const grFree = (W, x, y, r) => x > r && y > 150 + r && x < AW - r && y < AH - r && !W.A.walls.some(w => circHit(x, y, r, w)) && !(W.A.trees || []).some(t => Math.hypot(t[0] - x, t[1] - y) < t[2] * .7 + r);
+const grDone = W => Object.keys(W.done).filter(k => !W.A.pranks.find(p => p.id === k)?.unlock).length;
+const HOSE = [[110, 960], [150, 975], [195, 968], [225, 935], [250, 900]];
 area({
-  name: "The Grounds", w: 1200, h: 1000, ground: PAL.grass, amb: "camp", decor: "poolstub",
-  start: {G: [570, 900], H: [640, 900]}, entrance: [600, 940], from: {1: {G: [570, 880], H: [640, 880]}},
-  exits: [{z: [520, 940, 160, 60], to: 1, label: "Pool & Spa"}],
+  name: "The Grounds", w: 1400, h: 1200, ground: PAL.grass, amb: "camp", unlock: "signal", unlockAt: 6, decor: "grounds",
+  start: {G: [670, 1110], H: [730, 1110]}, entrance: [700, 1140], from: {1: {G: [670, 1100], H: [730, 1100]}, 3: {G: [660, 200], H: [720, 205]}},
+  exits: [{z: [620, 1172, 160, 28], to: 1, label: "Pool & Spa"}, {z: [620, 150, 140, 50], to: 3, need: "boarded", label: "the train"}],
+  pen: {r: [1180, 1000, 170, 150], gate: "gate", drop: [1145, 1070], guard: [1128, 1070, 0], label: "compost heap"},
+  walls: [RC(0, 140, 1400, 8), ...wallH(1150, 0, 1400, [[620, 780]]),
+    RC(1172, 992, 186, 8), RC(1350, 992, 8, 166), RC(1172, 1150, 186, 8), RC(1172, 992, 8, 48), RC(1172, 1100, 8, 58),
+    RC(772, 972, 126, 8), RC(890, 972, 8, 96), RC(772, 1060, 126, 8), RC(772, 972, 8, 20), RC(772, 1040, 8, 28)],
+  doors: [{id: "coopdoor", r: [772, 992, 8, 48], flag: "coopOpen", hide: true}],
+  floors: [{r: [300, 148, 800, 70], c: "#D7CCC8"}, {r: [620, 220, 160, 930], c: PAL.path}, {r: [120, 560, 520, 440], c: "#A5DB78"}, {r: [366, 600, 28, 300], c: "#FFFFFF"},
+    {r: [980, 420, 300, 220], c: "#7BC96F"}, {r: [1060, 700, 140, 90], c: "#F3E2A9"}, {r: [1180, 880, 90, 70], c: "#8BD07A"}, {r: [700, 900, 260, 200], c: "#C9B48A"}],
+  water: [[870, 560, 150, 130, "pond"]],
+  trees: [[60, 300, 40], [200, 330, 34], [1340, 300, 38], [60, 1080, 34], [1330, 700, 30], [480, 420, 32], [1000, 1100, 30], [880, 320, 34], [1300, 1060, 0]].filter(t => t[2]),
+  zones: {lawn: [120, 560, 520, 440], frontrow: [240, 686, 290, 30], kink: [140, 950, 75, 45], photo: [200, 870, 100, 60], coop: [780, 980, 110, 80], sand: [1060, 700, 140, 90],
+    green: [980, 420, 300, 220], bench: [826, 180, 60, 34], boardz: [620, 150, 140, 50], cake: [560, 690, 50, 50], cage: [1180, 1000, 170, 150]},
+  deco: [
+    {r: [340, 586, 80, 18], m: "arch"},
+    ...[700, 750, 800].flatMap(y => [255, 295, 335, 425, 465, 505].map(x => ({r: [x - 9, y - 9, 18, 18], m: "wchair", bow: y === 700}))),
+    {r: [560, 690, 50, 50], m: "caketable", solid: true},
+    {r: [540, 896, 44, 24], m: "bench"},
+    {r: [100, 870, 160, 110], m: "hose", pts: HOSE, cx: 180, cz: 925, kx: 175, kz: 972},
+    {r: [780, 980, 110, 80], m: "coop"},
+    {r: [1172, 534, 16, 16], m: "flagstick"},
+    {r: [500, 156, 110, 44], m: "stationhut", solid: true},
+    {r: [826, 186, 60, 24], m: "bench"},
+    {r: [700, 78, 120, 46], m: "train"},
+    {r: [60, 640, 40, 140], m: "flowerbed"}, {r: [60, 840, 40, 120], m: "flowerbed"}, {r: [420, 1060, 120, 40], m: "flowerbed"},
+    {r: [960, 1090, 160, 18], m: "hedge"}, {r: [120, 520, 520, 16], m: "hedge"},
+  ],
+  fix: [
+    {id: "topiary", m: "topiary", x: 560, y: 1060, r: 26, high: true, solid: true, label: "giraffe hedge"},
+    {id: "latch", m: "latch", x: 768, y: 1016, r: 10, high: true, label: "coop latch"},
+    {id: "sigpole", m: "sigpole", x: 380, y: 186, r: 12, high: true, solid: true, label: "signal flag rope"},
+    {id: "gate", m: "pengate", x: 1172, y: 1070, r: 18},
+    {id: "cake", m: "caketop", x: 570, y: 700, r: 12, high: true, label: "wedding cake"},
+  ],
+  objs: [
+    {id: "bouquet", m: "bouquet", on: "maid", snatch: true, own: "maid", guard: "never", r: 9},
+    {id: "ring", m: "ring", on: "rb", snatch: true, own: "rb", guard: "never", r: 7},
+    {id: "pball", m: "gball", x: 1150, y: 560, own: "golfer", r: 6},
+    {id: "ball1", m: "gball", x: 1000, y: 780, r: 6}, {id: "ball2", m: "gball", x: 1290, y: 1040, r: 6}, {id: "ball3", m: "gball", x: 940, y: 900, r: 6},
+    {id: "gcart", m: "gcart", x: 1130, y: 840, heavy: true, r: 24},
+    ...CHICKS.map((id, i) => ({id, m: "chicken", x: 812 + (i % 2) * 44, y: 1002 + Math.floor(i / 2) * 34, heavy: true, r: 10})),
+    {id: "ghat", m: "sunhat", on: "gardener", snatch: true, own: "gardener", guard: "trimming", wear: true, r: 10},
+    ...[[70, 660], [80, 700], [70, 740], [80, 870], [70, 910], [440, 1080], [480, 1076], [520, 1084]].map(([x, y], i) => ({id: "gflower" + (i + 1), m: "flower", x, y, r: 8, col: ["#F48FB1", "#FFD54F", "#CE93D8", "#FFFFFF"][i % 4], colFrom: "f48fb1"})),
+  ],
+  npcs: [
+    {id: "officiant", look: "officiant", x: 380, y: 618, beh: "post", face: Math.PI / 2, name: "Officiant", hints: [{p: "front", t: "We begin once the front row is ready. Front row, please, folks!"}]},
+    {id: "bride", look: "bride", x: 360, y: 652, beh: "post", face: -Math.PI / 2, name: "Bride"},
+    {id: "groom", look: "groom", x: 402, y: 652, beh: "post", face: -Math.PI / 2, name: "Groom"},
+    {id: "maid", look: "maid", x: 318, y: 664, beh: "post", face: -.3, name: "Bridesmaid", hints: [{p: "bouquet", t: "Every time that veil slips, I set the bouquet on the cake table and fix it."}]},
+    {id: "rb", look: "ringboy", x: 445, y: 668, beh: "post", face: Math.PI, name: "Ring bearer", hints: [{p: "ring", t: "My shoelace keeps coming undone. I put the ring on the grass by the bench to tie it."}]},
+    {id: "planner", look: "planner", x: 520, y: 900, beh: "wander", rad: 80, staff: true, name: "Wedding planner", hints: [{p: "chickens", t: "Whatever happens, NO chickens on my wedding lawn."}, {p: "front", t: "The front row stays EMPTY until the family sits. Nobody else."}]},
+    {id: "wphot", look: "wphot", x: 320, y: 990, beh: "post", face: -2.2, name: "Photographer", hints: [{p: "hose", t: "Portraits by the sprinkler. Just pray nobody turns it on."}]},
+    {id: "gardener", look: "gardener", x: 600, y: 1062, beh: "post", face: Math.PI, staff: true, name: "Gardener",
+      hints: [{p: "topiary", t: "Nobody touches my giraffe hedge while I'm trimming. I only leave it to empty the clippings."}, {p: "hose", t: "Water's always on at that tap. Kink the hose and the pressure builds right up."}]},
+    {id: "golfer", look: "golfer", x: 1210, y: 930, beh: "post", face: -Math.PI / 2, name: "Golfer",
+      hints: [{p: "shank", t: "Total silence on the backswing, please. One noise and that ball's in the pond."}, {p: "putt", t: "Before every putt I crouch and read the green. Back to the ball, eyes on the grass."}]},
+    {id: "caddie", look: "caddie", x: 1170, y: 845, beh: "post", face: Math.PI, staff: true, name: "Caddie",
+      hints: [{p: "cart", t: "Handbrake's broken and the cart's parked on a slope. I only leave it to fetch the flag."}]},
+    {id: "smaster", look: "smaster", x: 600, y: 232, beh: "post", face: Math.PI / 2, staff: true, name: "Station master",
+      hints: [{p: "signal", t: "Trains only stop here if the signal flag's up. And I'm the only one who raises it."}, {p: "signal", t: "That bench is STAFF seating. I will argue about it for as long as it takes."}]},
+    {id: "cond", look: "cond", x: 700, y: -300, beh: "post", face: Math.PI / 2, staff: true, name: "Conductor"},
+    {id: "wg1", look: "wg1", x: 295, y: 750, beh: "sit", face: -Math.PI / 2}, {id: "wg2", look: "wg2", x: 465, y: 750, beh: "sit", face: -Math.PI / 2},
+    {id: "wg3", look: "wg3", x: 335, y: 800, beh: "sit", face: -Math.PI / 2}, {id: "wg4", look: "wg4", x: 425, y: 800, beh: "sit", face: -Math.PI / 2},
+  ],
+  hooks: {
+    use(W, id, role){
+      if(id === "topiary"){ if(role !== "G" || W.flag.topiaryBit) return;
+        if(W.flag.trimming || grFacing(W, "gardener", 560, 1060, 160)){ W.say("gardener", "OI! Hands off my hedge!", 2, "hey"); W.chase("gardener", role); return; }
+        W.set("topiaryBit"); W.fx("poof", 582, 1050); W.emit("say", {obj: "", s: "plop"}); return; }
+      if(id === "cake"){ if(role !== "G" || W.flag.cakeEaten) return; W.set("cakeEaten"); W.emit("say", {obj: "", s: "plop"}); W.say("planner", "The CAKE! Somebody ATE the top tier!", 2.6, "scream"); return; }
+      if(id === "latch"){ if(role !== "G" || W.flag.coopOpen) return; W.set("coopOpen"); W.emit("say", {obj: "", s: "thump"}); CHICKS.forEach(c => W.o(c).flee = 1); return; }
+      if(id === "sigpole"){ if(role !== "G" || W.flag.flagUp) return; W.set("flagUp"); W.emit("say", {obj: "", s: "beep"}); return; }
+    },
+    noise(W, role){
+      if(role === "H" && W.flag.swinging && !W.flag.shanked && W.near("H", "golfer", 340)){ W.set("shanked"); W.flag.swinging = 0; W.fx("poof", 940, 620); W.emit("say", {obj: "golfer", s: "scream"});
+        W.script("golfer", [{say: "FORE— NO! NOT THE POND!", s: "scream", t: 2.5}, {go: [1060, 700]}, {go: [980, 640], swim: 1}, {emote: "🐸", t: 2.5}, {wait: 3, spin: 1}, {say: "Got it… no, that's a frog.", t: 2.5, s: "grumble"}, {go: [1060, 720]}, {go: [1210, 930]}, {face: -Math.PI / 2}]); }
+      if(W.flag.coopOpen) CHICKS.forEach(c => { const o = W.o(c); if(Math.hypot(o.x - W.P[role].x, o.y - W.P[role].y) < 200) o.scare = W.t + 1.2; });
+    },
+    tick(W, dt){ const C = W.cnt, F = W.flag, H = W.P.H;
+      // ---- photographer poses the couple by the sprinkler; a kinked hose bursts when Harriet stands up ----
+      C.phT = (C.phT || 0) + dt; const br = W.npc("bride"), gr = W.npc("groom");
+      if(C.phT > 26 && br.st === "post" && gr.st === "post" && !F.posing){ C.phT = 0;
+        W.script("bride", [{go: [235, 905]}, {face: .9}, {set: "posing"}, {wait: 11}, {set: "posing", v: 0}, {go: [360, 652]}, {face: -Math.PI / 2}]);
+        W.script("groom", [{go: [272, 905]}, {face: 1.6}, {wait: 11}, {go: [402, 652]}, {face: -Math.PI / 2}]);
+        W.script("wphot", [{wait: 4}, {say: "Lovely! Closer… hold it…", t: 3}, {wait: 4}, {say: "Say 'safari'!", t: 2}]); }
+      const kinkNow = H && H.sit && W.inZ("H", "kink");
+      if(kinkNow){ C.kinkT = (C.kinkT || 0) + dt; if(C.kinkT > 1.2 && !F.kinked){ F.kinked = 1; W.emit("say", {obj: "", s: "boing"}); } }
+      else { if(F.kinked){ F.kinked = 0; F.spray = 1; C.sprayT = 3.5; W.emit("say", {obj: "", s: "splash"});
+          if(F.posing && !F.soakedC && W.inZ("bride", "photo")){ W.set("soakedC"); F.posing = 0; W.fx("poof", 250, 900);
+            W.script("bride", [{say: "MY DRESS!!", s: "scream", t: 2.5}, {emote: "💦", t: 3}, {wait: 2.5, spin: 1}, {go: [360, 652]}, {face: -Math.PI / 2}]);
+            W.script("groom", [{say: "Who turned the sprinkler on?!", s: "hey", t: 2.5}, {emote: "💦", t: 3}, {wait: 2}, {go: [402, 652]}, {face: -Math.PI / 2}]);
+            W.script("wphot", [{say: "My CAMERA!", s: "gasp", t: 2.5}, {emote: "📷", t: 2}]); } }
+        C.kinkT = 0; }
+      if(F.spray){ C.sprayT -= dt; if(C.sprayT <= 0) F.spray = 0; }
+      // ---- Harriet charging through the chairs knocks them all flying (off the list) ----
+      if(H && H.c && !F.chairsKO && inRect(H.x, H.y, [240, 690, 285, 125])){ W.set("chairsKO"); W.emit("say", {obj: "", s: "crash"}); W.say("planner", "My SEATING PLAN!", 2.4, "scream"); ["wg1", "wg2", "wg3", "wg4"].forEach(id => W.emote(id, "😱", 2.5)); }
+      // ---- front row: the ceremony can't start with a hippo in it ----
+      if(H && H.sit && W.inZ("H", "frontrow") && !F.stalled){ C.frT = (C.frT || 0) + dt; if(C.frT > 3){ W.set("stalled"); W.say("officiant", "We'll begin once the front row is… is that a HIPPO?", 3, "gasp");
+          ["wg1", "wg2", "wg3", "wg4"].forEach((id, i) => W.emote(id, ["😮", "🙄", "😂", "😱"][i], 3));
+          W.script("planner", [{go: [H.x + 40, H.y + 30], run: 1}, {say: "Shoo! SHOO! That seat is for Grandma!", s: "hey", t: 2.5}, {wait: 2}, {say: "She won't budge.", t: 2, s: "grumble"}]); } }
+      else if(!F.stalled) C.frT = 0;
+      // ---- bridesmaid sets the bouquet on the cake table to fix the veil ----
+      const md = W.npc("maid"), bq = W.o("bouquet"); C.mdT = (C.mdT || 0) + dt;
+      if(C.mdT > 24 && md.st === "post" && bq.holder === "maid" && br.st === "post"){ C.mdT = 0;
+        W.script("maid", [{go: [585, 752]}, {face: -Math.PI / 2}, {do: (W2) => { const b = W2.o("bouquet"); if(b.holder === "maid"){ b.holder = ""; b.x = 585; b.y = 715; b.high = true; } }}, {say: "Hold still, your veil's slipping!", t: 2.2},
+          {go: [338, 664]}, {face: 0}, {emote: "💇", t: 8}, {wait: 9}, {go: [585, 752]}, {face: -Math.PI / 2},
+          {do: (W2) => { const b = W2.o("bouquet"); if(!b.holder && Math.hypot(b.x - 585, b.y - 715) < 30){ b.holder = "maid"; b.high = false; } else W2.say("maid", "The BOUQUET?! Where did it go?!", 2.5, "gasp"); }}, {go: [318, 664]}, {face: -.3}]); }
+      // ---- ring bearer puts the ring down to tie his shoe ----
+      const rb = W.npc("rb"); C.rbT = (C.rbT || 0) + dt;
+      if(C.rbT > 30 && rb.st === "post" && W.o("ring").holder === "rb"){ C.rbT = 0;
+        W.script("rb", [{go: [562, 890]}, {face: Math.PI / 2}, {do: (W2) => { const r = W2.o("ring"); r.holder = ""; r.x = 560; r.y = 925; }}, {say: "Stupid shoelace…", t: 2}, {face: -Math.PI / 2}, {emote: "👟", t: 7}, {wait: 7.5}, {face: Math.PI / 2},
+          {do: (W2, n) => { const r = W2.o("ring"), near = o => !o.holder && !o.gone && Math.hypot(o.x - 560, o.y - 925) < 26; const ball = GBALLS.map(id => W2.o(id)).find(near);
+            if(near(r)) r.holder = "rb"; else if(ball){ ball.holder = "rb"; W2.set("ringSwap"); W2.say("rb", "Huh. Heavier than I remember.", 2.5); } else W2.say("rb", "Where's the RING?!", 2.5, "gasp"); }}, {go: [445, 668]}, {face: Math.PI}]); }
+      // ---- the ring bearer and bridesmaid fetch their things if they end up on the ground ----
+      for(const [nid, oid, back] of [["rb", "ring", [445, 668, Math.PI]], ["maid", "bouquet", [318, 664, -.3]]]){ const n = W.npc(nid), o = W.o(oid);
+        if(n.st === "post" && !o.holder && !o.gone && !(oid === "bouquet" && Math.hypot(o.x - 585, o.y - 715) < 30)){ W.say(nid, oid === "ring" ? "There's the ring!" : "There's the bouquet!", 1.8);
+          W.script(nid, [{go: [o.x, o.y + 20]}, {do: (W2) => { const q = W2.o(oid); if(!q.holder && Math.hypot(q.x - n.x, q.y - n.y) < 40){ q.holder = nid; q.high = false; } }}, {go: [back[0], back[1]]}, {face: back[2]}]); } }
+      // ---- golfer: tee shot (quiet please), then a putt where he reads the green with his back turned ----
+      const gf = W.npc("golfer"), pb = W.o("pball"); C.gfT = (C.gfT || 0) + dt;
+      if(C.gfT > 8 && gf.st === "post"){ C.gfT = 0;
+        W.script("golfer", [{say: "Quiet, please…", t: 2}, {set: "swinging"}, {wait: 2.6}, {set: "swinging", v: 0}, {say: "Lovely shot.", t: 1.6}, {go: [1160, 760]}, {go: [1122, 590]},
+          {do: (W2) => { const b = W2.o("pball"); if(!b.holder && !b.gone){ b.x = 1150; b.y = 560; } }}, {face: -.8}, {wait: 1.5}, {say: "Let me read this green…", t: 2}, {face: 2.3}, {do: (W2) => { const b = W2.o("pball"); W2.flag.ballSet = !b.holder && !b.gone && Math.hypot(b.x - 1150, b.y - 560) < 24 ? 1 : 0; }}, {set: "reading"}, {wait: 6}, {set: "reading", v: 0}, {face: -.8},
+          {do: (W2) => { const b = W2.o("pball"); if(!b.holder && !b.gone && Math.hypot(b.x - 1150, b.y - 560) < 24){ b.x = 1174; b.y = 538; W2.say("golfer", "In the hole!", 1.8, "laugh"); }
+            else if(!W2.flag.puttStolen && W2.flag.ballSet){ W2.set("puttStolen"); W2.say("golfer", "Where's my BALL?! It was RIGHT THERE!", 3, "gasp"); W2.emote("golfer", "😤", 3); } else W2.say("golfer", W2.flag.puttStolen ? "Fine. Practice swing." : "Who moved my ball? Never mind, I've got a spare.", 2.4, "grumble"); }},
+          {wait: 2}, {go: [1160, 760]}, {go: [1210, 930]}, {face: -Math.PI / 2}]); }
+      // ---- caddie fetches the flag; the cart has no handbrake and sits on a slope ----
+      const cd = W.npc("caddie"), ct = W.o("gcart"); C.cdT = (C.cdT || 0) + dt;
+      if(C.cdT > 22 && cd.st === "post" && !F.cartSand){ C.cdT = 0;
+        W.script("caddie", [{say: "Back in a tick, fetching the flag.", t: 2}, {set: "caddieAway"}, {go: [1180, 760]}, {go: [1180, 560]}, {set: "flagFetched"}, {emote: "⛳", t: 3}, {wait: 6}, {set: "flagFetched", v: 0}, {go: [1180, 760]}, {go: [1170, 845]}, {set: "caddieAway", v: 0}, {face: Math.PI}]); }
+      const moved = Math.hypot(ct.x - 1130, ct.y - 840);
+      if(!F.cartSand && !F.rolling && moved > 18){
+        if(F.caddieAway) { F.rolling = 1; W.emit("say", {obj: "", s: "thump"}); }
+        else if(cd.st === "post"){ W.say("caddie", "Hey! Hands off my cart!", 2, "hey"); W.script("caddie", [{go: [ct.x + 30, ct.y]}, {do: (W2) => { const c = W2.o("gcart"); c.x = 1130; c.y = 840; }}, {go: [1170, 845]}, {face: Math.PI}]); } }
+      if(F.rolling && !F.cartSand){ const dx = 1130 - ct.x, dy = 745 - ct.y, d = Math.hypot(dx, dy) || 1, sp = 110 * dt; ct.x += dx / d * Math.min(d, sp); ct.y += dy / d * Math.min(d, sp); ct.pushedT = W.t;
+        if(W.inZ("gcart", "sand") && d < 20){ F.rolling = 0; W.set("cartSand"); W.fx("poof", ct.x, ct.y); W.say("caddie", "MY CART! Not the bunker!", 2.5, "scream"); } }
+      // ---- gardener: trims the giraffe hedge, then wheels the clippings to the compost heap ----
+      const gd = W.npc("gardener"); C.gdT = (C.gdT || 0) + dt;
+      if(gd.st === "post" && !F.trimming && C.gdT > 2){ F.trimming = 1; C.gdT = 0; }
+      if(F.trimming && C.gdT > 14 && gd.st === "post"){ C.gdT = 0; F.trimming = 0;
+        W.script("gardener", [{say: "Right. Clippings.", t: 1.6}, {go: [880, 1125]}, {go: [1140, 1125]}, {face: 0}, {emote: "🍂", t: 5}, {wait: 6}, {go: [880, 1125]}, {go: [600, 1062]}, {face: Math.PI},
+          {do: (W2) => { if(W2.flag.topiaryBit && !W2.flag.gdSaw){ W2.flag.gdSaw = 1; W2.say("gardener", "MY GIRAFFE! Its HEAD!", 3, "scream"); W2.emote("gardener", "😭", 3); } }}]); }
+      // ---- chickens: once the coop is open they wander, and run from Harriet ----
+      if(F.coopOpen) for(const id of CHICKS){ const o = W.o(id); if(o.holder) continue; let vx = 0, vy = 0;
+        const dh = H ? Math.hypot(o.x - H.x, o.y - H.y) : 999;
+        if(H && (dh < 120 || (o.scare || 0) > W.t)){ const s = dh < 120 ? 110 : 80; vx = (o.x - H.x) / (dh || 1) * s; vy = (o.y - H.y) / (dh || 1) * s; }
+        else { o.wa = (o.wa ?? Math.random() * 6.28) + (Math.random() - .5) * dt * 3; vx = Math.cos(o.wa) * 14; vy = Math.sin(o.wa) * 14; if(W.inZ(id, "lawn")){ vx *= .5; vy *= .5; } }
+        const inLawn = W.inZ(id, "lawn"); if(inLawn && dh > 70){ vx *= .1; vy *= .1; } // settled on the lawn, pecking at cake crumbs
+        let nx = o.x + vx * dt, ny = o.y + vy * dt; if(inLawn){ const L = W.A.zones.lawn; nx = clamp(nx, L[0] + 12, L[0] + L[2] - 12); ny = clamp(ny, L[1] + 12, L[1] + L[3] - 12); }
+        if(grFree(W, nx, ny, o.r)){ o.x = nx; o.y = ny; } else if(grFree(W, nx, o.y, o.r)) o.x = nx; else if(grFree(W, o.x, ny, o.r)) o.y = ny; else o.wa = (o.wa || 0) + 1.6; }
+      for(const id of CHICKS){ const o = W.o(id); if(o.holder) continue; if(o.y > 1128){ o.y = 1128; o.wa = -1.57; } if(o.y < 240){ o.y = 240; o.wa = 1.57; } if(inRect(o.x, o.y, [1165, 985, 200, 180])){ o.x = 1150; o.wa = Math.PI; } }
+      if(F.coopOpen && !F.chickLawn && CHICKS.every(id => W.inZ(id, "lawn"))){ W.set("chickLawn"); W.say("planner", "CHICKENS?! On my LAWN?!", 3, "scream");
+        ["wg1", "wg2", "wg3", "wg4", "bride"].forEach(id => W.emote(id, "🐔", 3)); }
+      // ---- station master, the signal flag and the train ----
+      const sm = W.npc("smaster"), onBench = H && H.sit && W.inZ("H", "bench");
+      if(onBench && !F.arguing && sm.st !== "chase"){ F.arguing = 1; W.script("smaster", [{say: "Oi! That bench is STAFF seating!", s: "hey", t: 2.4}, {go: [806, 205]}, {face: 0}]); }
+      if(F.arguing){ C.agT = (C.agT || 0) + dt; if(C.agT > 3 && sm.st !== "script"){ C.agT = 0; sm.dir = 0; W.say("smaster", ["Up. UP. Staff only!", "Do you work here? No!", "I've sat on that bench for 20 years!", "I'm not moving till YOU move!"][Math.floor(W.t) % 4], 2.4, "grumble"); }
+        if(!onBench){ F.arguing = 0; C.agT = 0; W.script("smaster", [{say: "And STAY off it.", t: 1.8, s: "grumble"}, {go: [600, 232]}, {face: Math.PI / 2}]); } }
+      if(F.flagUp && !F.trainStop && !F.arguing && sm.st === "post"){
+        W.script("smaster", [{say: "Who raised the signal?!", s: "hey", t: 2}, {go: [400, 214], run: 1}, {face: -Math.PI / 2}, {wait: 1},
+          {do: (W2) => { if(!W2.flag.trainStop){ W2.flag.flagUp = 0; W2.say("smaster", grDone(W2) >= (W2.A.unlockAt || 0) ? "No stopping today, thank you." : "No train due for ages, you hooligans.", 2.4, "grumble"); } }}, {go: [600, 232]}, {face: Math.PI / 2}]); }
+      if(F.flagUp && !F.trainCome && grDone(W) >= (W.A.unlockAt || 0)){ F.trainCome = 1; F.trainX = -1500; W.emit("say", {obj: "", s: "horn"}); }
+      if(F.trainCome && !F.trainStop){ F.trainX = Math.min(F.flagUp ? 0 : 3000, F.trainX + dt * (F.flagUp ? Math.max(60, -F.trainX * .55) : 420));
+        if(F.flagUp && F.trainX >= -2){ F.trainX = 0; W.set("trainStop"); W.set("trainIn"); const c = W.npc("cond"); c.x = 690; c.y = 168; c.home = [690, 168]; W.say("cond", "Who flagged us down?! …Hello?", 3, "hey"); W.emit("say", {obj: "", s: "horn"}); }
+        if(!F.flagUp && F.trainX >= 3000){ F.trainCome = 0; F.trainX = -3000; } }
+      if(F.trainIn && !F.boarded && (W.solo ? W.inZ("G", "boardz") : W.both("boardz"))){ W.set("boarded"); W.say("cond", "Right then, all aboa— was that a HIPPO?", 3, "gasp"); }
+    },
+  },
+  pranks: [
+    {id: "bouquet", text: "Steal the bride's bouquet", who: "G", check: W => W.holds("G", "bouquet") || W.holds("H", "bouquet")},
+    {id: "hose", text: "Spring a sprinkler ambush on the wedding portrait", who: "H", big: true, check: W => W.flag.soakedC},
+    {id: "topiary", text: "Bite the head off the giraffe hedge", who: "G", check: W => W.flag.topiaryBit},
+    {id: "front", text: "Sit in the front row so the ceremony can't start", who: "H", check: W => W.flag.stalled},
+    {id: "ring", text: "Swap the wedding ring for a golf ball", who: "G", check: W => W.flag.ringSwap},
+    {id: "putt", text: "Steal the golfer's ball right before his putt", who: "G", check: W => W.flag.puttStolen},
+    {id: "shank", text: "Bellow mid-swing", who: "H", big: true, check: W => W.flag.shanked},
+    {id: "cart", text: "Push the golf cart into the sand trap", who: "H", keep: ["gcart"], check: W => W.flag.cartSand},
+    {id: "chickens", text: "Let the chickens out onto the wedding lawn", who: "B", big: true, keep: CHICKS, check: W => W.flag.chickLawn},
+    {id: "signal", text: "Raise the signal flag and catch the train", who: "B", big: true, unlock: true, check: W => W.flag.boarded},
+  ],
+});
+
+/* ===== Area 4: The Train (placeholder until its list is approved) ===== */
+area({
+  name: "The Train", w: 1200, h: 1000, ground: "#C8B27A", amb: "camp", decor: "poolstub",
+  start: {G: [570, 900], H: [640, 900]}, entrance: [600, 940], from: {2: {G: [570, 880], H: [640, 880]}},
+  exits: [{z: [520, 940, 160, 60], to: 2, label: "The Grounds"}],
   walls: [...wallH(960, 0, 520), ...wallH(960, 680, 1200)],
-  floors: [{r: [520, 600, 160, 400], c: PAL.path}], water: [[200, 200, 260, 160, "pond"]], trees: [[120, 600, 40], [1080, 300, 36], [900, 650, 38]], zones: {},
-  deco: [{r: [520, 560, 160, 40], m: "counter", label: "THE GROUNDS · COMING SOON", c: "#2E7D32", top: "#C8E6C9", solid: true}],
+  floors: [{r: [520, 600, 160, 400], c: PAL.path}], trees: [[120, 600, 40], [1080, 300, 36]], zones: {},
+  deco: [{r: [480, 560, 240, 40], m: "counter", label: "THE TRAIN · COMING SOON", c: "#B71C1C", top: "#FFCDD2", solid: true}],
   fix: [], objs: [], npcs: [], pranks: [],
 });
 
@@ -2139,7 +2330,7 @@ class World {
     if(!best) return;
     if(isFix){ best.n++; this.emit("use", {who: role, obj: best.id}); if(best.id === this.A.pen?.gate) this.gateTry(role); this.A.hooks?.use?.(this.W, best.id, role); return; }
     if(best.wear && (!best.wearBy || best.wearBy === role)){ best.worn = role; this.emit("wear", {who: role, obj: best.id}); this.A.hooks?.grab?.(this.W, best.id, role); return; }
-    const from = this.npc(best.holder); if(from && best.guard && !this.flag[best.guard] && this.facing(from, a)){ this.say(from.id, "Hands off!", 1.6, "hey"); this.emote(from.id, "😠", 1.5); this.chase(from, role, "scene"); return; }
+    const from = this.npc(best.holder); if(from && best.guard && !this.flag[best.guard] && (best.guardAll || this.facing(from, a))){ this.say(from.id, "Hands off!", 1.6, "hey"); this.emote(from.id, "😠", 1.5); this.chase(from, role, "scene"); return; }
     if(from){ from.startle = this.t + 1.6; this.emote(from.id, "😲", 1.6); this.emit("say", {obj: from.id, s: "gasp"}); from.pend = {who: role, obj: best.id, at: this.t + 1.6}; }
     best.holder = role; best.stay = false; this.emit("grab", {who: role, obj: best.id}); this.A.hooks?.grab?.(this.W, best.id, role);
   }
@@ -2906,6 +3097,7 @@ function human(look){
   if(L.apron) body.add(P3(SC3(CY(6.9, 6.9, 20, L.apron, 16, {side: THREE.DoubleSide}), .2, 1, .9), 4.6, 31, 0));
   if(L.vest) body.add(P3(SC3(CY(7.4, 6.8, 16, L.vest, 18), .74, 1, 1.07), 0, 38, 0));
   if(L.robe) body.add(P3(SC3(CY(7.8, 8.6, 26, "#EDE7F6", 18), .76, 1, 1.08), 0, 31, 0));
+  if(L.dress){ body.add(P3(SC3(CY(6.6, 12.5, 24, L.dress, 20), .9, 1, 1.05), 0, 14, 0)); body.add(P3(SC3(CY(12.7, 12.7, 1.2, L.dress === "#FFFFFF" ? "#F5F5F5" : L.dress, 20), .9, 1, 1.05), 0, 2.5, 0)); }
   if(L.trim){ body.add(P3(SC3(CY(7.3, 7.3, 2, L.trim, 18), .73, 1, 1.06), 0, 28, 0)); for(const y of [32, 36, 40]) body.add(P3(SM(.9, L.trim, 8, 6), 5.1, y, 0)); }
   if(L.tie){ body.add(P3(B3(1, 11, 2.2, L.tie), 5.3, 39, 0)); body.add(P3(B3(1, 2.6, 7, L.collar), 5.1, 45, 0)); }
   if(L.bowtie){ body.add(P3(SC3(SM(1.6, L.bowtie, 8, 6), .6, .8, 1.5), 5.2, 45, 0)); body.add(P3(B3(1, 2.4, 6, "#FFFFFF"), 5, 45.5, 0)); }
@@ -2930,6 +3122,7 @@ function human(look){
   if(st === "bun") head.add(P3(SM(3.2, hairC, 12, 8), -5.5, 6.5, 0));
   if(st === "long") head.add(P3(SC3(SM(6.4, hairC, 14, 10), .6, 1.2, 1), -4, -2, 0));
   if(st === "curly") for(let k = 0; k < 9; k++){ const a = k / 9 * 6.28; head.add(P3(SM(2.4, hairC, 8, 6), -1 + Math.cos(a) * 3, 6.2 + Math.sin(k) * .8, Math.sin(a) * 5)); }
+  if(L.veil){ head.add(P3(SC3(SM(7.9, "#FFFFFF", 16, 10, {transparent: true, opacity: .55}), .8, 1.25, 1.02), -2.6, 0, 0)); head.add(P3(SC3(SM(1.4, "#F8BBD0", 8, 6), 1, 1, 3.6), 0, 7.6, 0)); }
   if(L.shades){ head.add(P3(B3(1, 1.8, 6.4, "#212121"), 6.9, 1.9, 0)); }
   if(L.glasses) for(const s of [-1, 1]){ const r = new THREE.Mesh(new THREE.TorusGeometry(1.7, .3, 6, 14), m3("#37474F")); r.rotation.y = Math.PI / 2; r.position.set(6.7, 1.9, s * 2.5); head.add(r); }
   if(L.hat === "ranger") head.add(G3(P3(CY(11, 11, 1.2, "#8D7A55", 20), 0, 6, 0), P3(CY(5.5, 6.5, 5, "#A08A60", 16), 0, 9, 0), P3(CY(6.6, 6.6, 1.2, "#5D4037", 16), 0, 7.2, 0)));
@@ -2963,9 +3156,11 @@ function makeGinger(){
   const eyes = [-1, 1].map(s => eyeRig(head, 3.4, 2.4, s * 4.4, .78, Y));
   const ears = [-1, 1].map(s => { const e = new THREE.Group(); e.position.set(-2.4, 4.2, s * 4.6); e.add(P3(SC3(SM(2.2, Y, 12, 8), .55, .9, 2.1), 0, 0, s * 2.6)); e.add(P3(SC3(SM(1.5, "#F8BBD0", 10, 6), .3, .7, 1.6), .5, 0, s * 2.7)); e.rotation.x = s * .45; head.add(e); return e; });
   for(const s of [-1, 1]){ head.add(P3(CY(.85, .95, 6.5, Y, 10), -.6, 7.2, s * 2.3)); head.add(P3(SM(1.5, "#4E342E", 12, 8), -.6, 10.6, s * 2.3)); }
+  const gjaw = new THREE.Group(); gjaw.position.set(6.5, -3.6, 0); head.add(gjaw); // lower lip that drops open
+  gjaw.add(P3(SC3(SM(2.9, "#6D2E2E", 12, 8), 1.45, .32, .72), 4.2, .5, 0)); gjaw.add(P3(SC3(SM(3.1, YL, 14, 10), 1.5, .42, .8), 4.6, -.6, 0));
   const mouth = new THREE.Object3D(); mouth.position.set(13, -3, 0); head.add(mouth);
   const top = new THREE.Object3D(); top.position.set(0, 12, 0); head.add(top);
-  return {g, body, legs, neck, nk, mane, nsp, head, mouth, top, tail, tuft, eyes, ears, kind: "G", len: 34};
+  return {g, body, legs, neck, nk, mane, nsp, head, mouth, gjaw, top, tail, tuft, eyes, ears, kind: "G", len: 34};
 }
 
 /* ---- Harriet the hippo ---- */
@@ -3007,6 +3202,13 @@ function animLife(m, a, t, dt, F, R3i){
   m.legs.forEach((Lg, i) => { const k = Lg.userData.knee; if(k) k.rotation.z = a.sit ? 0 : a.mv ? Math.max(0, Math.sin(t * (a.r ? 17 : 11) + (i === 0 || i === 3 ? 0 : Math.PI))) * -.5 : 0; });
   if(m.kind === "H"){ if(L.idle > 6 && t > L.yawnAt){ L.yawnAt = t + 14 + Math.random() * 10; L.yawn = 1; } L.yawn = Math.max(0, L.yawn - dt * .6);
     if(L.yawn > 0) m.jaw.rotation.z = -Math.sin(L.yawn * Math.PI) * 1.05; }
+  // mouth: snaps open and shut on a pick-up, opens wide for a snort or bellow
+  const MA = R3i && R3i.mouthAt && R3i.mouthAt[m.kind]; let op = 0;
+  if(MA){ const d = performance.now() / 1000 - MA.t;
+    if(MA.k === "grab") op = d < .12 ? d / .12 : d < .2 ? 1 : d < .36 ? 1 - (d - .2) / .16 : 0;
+    else op = d < .08 ? d / .08 : d < .55 ? 1 + Math.sin(d * 40) * .06 : d < .75 ? 1 - (d - .55) / .2 : 0; }
+  if(m.kind === "H"){ if(op > 0) m.jaw.rotation.z = -op * (MA.k === "grab" ? .6 : 1.0); else if(!(L.yawn > 0)) m.jaw.rotation.z = 0; }
+  else if(m.gjaw) m.gjaw.rotation.z = -op * (MA && MA.k === "grab" ? .55 : .8);
   const under = !!(a.sit && a.w); if(m.under !== under){ m.under = under; const keep = m.kind === "G" ? m.neck : m.head; m.body.children.forEach(c => { if(c !== keep) c.visible = !under; }); }
   if(m.kind === "H" && under){ m.body.position.y += (-27 - m.body.position.y) * Math.min(1, dt * 6); }
   if(m.kind === "G" && under){ // ducking under: just the neck and head stay above the water, like a periscope
@@ -3205,15 +3407,35 @@ Object.assign(FIXT, {
     g.userData.anim = (t, F) => cups.forEach((c, k) => { if(F.drinksDown){ c.rotation.z = 1.4 * (k % 2 ? 1 : -1); c.position.y = 3; c.position.z = 14 + k * 3; } }); return g; },
 });
 Object.assign(PROPS, {
-  plush(){ // soft stuffed giraffe: plump body, stubby legs, long neck, big head, little horns, patches and a tag
-    const Y = "#F7CF6E", P = "#C98B3E", g = new THREE.Group(); g.add(P3(SC3(SM(6, Y, 18, 14), 1.25, .9, .85), 0, 7, 0));
-    for(const [x, z] of [[4, -3], [4, 3], [-4, -3], [-4, 3]]){ g.add(P3(CY(1.6, 1.8, 5, Y, 10), x, 2.5, z)); g.add(P3(SC3(SM(1.9, "#8D5524", 10, 8), 1, .5, 1), x, .4, z)); }
-    const nk = P3(CY(1.8, 2.4, 9, Y, 12), 5.5, 14, 0); nk.rotation.z = -.35; g.add(nk); const hd = new THREE.Group(); hd.position.set(8, 19.5, 0); g.add(hd);
-    hd.add(SC3(SM(3.6, Y, 16, 12), 1.15, 1, .95)); hd.add(P3(SC3(SM(2.4, "#F9E0A6", 14, 10), 1, .8, .9), 3, -1, 0)); for(const s of [-1, 1]){ hd.add(P3(SM(.75, "#2B1B12", 8, 6), 2.4, 1, s * 2)); hd.add(P3(SM(.25, "#FFFFFF", 6, 4), 2.9, 1.3, s * 2.1)); hd.add(P3(CY(.45, .5, 2.6, Y, 8), -.6, 4, s * 1.3)); hd.add(P3(SM(.8, "#8D5524", 8, 6), -.6, 5.4, s * 1.3)); hd.add(P3(SC3(SM(1.1, Y, 10, 6), .5, .9, 1.4), -1.4, 2.4, s * 3)); }
-    hd.add(P3(B3(.3, .3, 1.6, "#8D5524"), 3.9, -1.6, 0));
-    for(let k = 0; k < 9; k++){ const a = hsh3(k * 2.3) * 6.28, s = P3(SC3(SM(1.4 + hsh3(k) * .7, P, 10, 6), 1, .9, .3), Math.cos(a) * 5.6, 7 + Math.sin(k * 1.7) * 3, Math.sin(a) * 4.6); s.lookAt(Math.cos(a) * 20, 7 + Math.sin(k * 1.7) * 6, Math.sin(a) * 16); g.add(s); }
-    g.add(P3(CY(.4, .4, 4, Y, 6), -7.4, 8, 0).rotateZ(.8)); g.add(P3(SC3(SM(1, "#8D5524", 8, 6), 1, 1.6, 1), -8.8, 6.6, 0)); g.add(P3(B3(2.4, 1.6, .3, "#E53935"), -3, 10, 5.2));
-    g.scale.setScalar(1.25); return g; },
+  plush(){ // stuffed giraffe toy: soft body, long neck, ossicones, mane, big patches, stitched hooves
+    const Y = "#F6CC6A", P = "#B8732F", HO = "#6D4424", g = new THREE.Group();
+    g.add(P3(SC3(SM(5.4, Y, 18, 14), 1.35, .85, .8), 0, 9, 0));
+    for(const [x, z] of [[4.2, -2.6], [4.2, 2.6], [-4.2, -2.6], [-4.2, 2.6]]){ g.add(P3(CY(1.5, 1.7, 8, Y, 10), x, 4.5, z)); g.add(P3(CY(1.8, 1.8, 1.6, HO, 10), x, .8, z)); }
+    const nk = new THREE.Group(); nk.position.set(5, 12, 0); nk.rotation.z = -.28; g.add(nk);
+    nk.add(P3(CY(1.6, 2.3, 14, Y, 12), 0, 7, 0)); for(let k = 0; k < 6; k++) nk.add(P3(SC3(SM(.9, HO, 8, 6), .8, 1.3, .7), -1.7, 2 + k * 2.2, 0));
+    for(let k = 0; k < 3; k++) for(const s of [-1, 1]) nk.add(P3(SC3(SM(1.1, P, 8, 6), 1, 1.2, .3), .2, 3 + k * 4, s * 1.75));
+    const hd = new THREE.Group(); hd.position.set(1.5, 15, 0); nk.add(hd); hd.rotation.z = .28;
+    hd.add(SC3(SM(3.2, Y, 16, 12), 1.25, .95, .9)); hd.add(P3(SC3(SM(2.4, "#F9E3AE", 14, 10), 1.25, .85, .95), 3.3, -.8, 0));
+    for(const s of [-1, 1]){ hd.add(P3(SM(.62, "#1B120C", 8, 6), 1.6, 1.2, s * 2.2)); hd.add(P3(SM(.22, "#FFFFFF", 6, 4), 2, 1.5, s * 2.35));
+      hd.add(P3(SM(.3, "#5D3A1A", 6, 4), 5.2, -.2, s * .8));
+      hd.add(P3(CY(.45, .5, 3.4, Y, 8), -.6, 3.9, s * 1.2)); hd.add(P3(SM(.85, HO, 8, 6), -.6, 5.8, s * 1.2));
+      hd.add(P3(SC3(SM(1.2, Y, 10, 6), .45, .8, 1.6), -1.6, 2.2, s * 3)); }
+    hd.add(P3(B3(2.2, .25, .25, "#5D3A1A"), 4.2, -1.9, 0));
+    for(let k = 0; k < 10; k++){ const a = hsh3(k * 2.3) * 6.28, y = 8 + Math.sin(k * 1.7) * 2.6, s2 = P3(SC3(SM(1.6 + hsh3(k) * .6, P, 10, 6), 1.2, .95, .25), Math.cos(a) * 6.6, y, Math.sin(a) * 3.9); s2.lookAt(Math.cos(a) * 26, y + (y - 9) * 3, Math.sin(a) * 16); g.add(s2); }
+    const tl = P3(CY(.35, .35, 5, Y, 6), -7.6, 9, 0); tl.rotation.z = .9; g.add(tl); g.add(P3(SC3(SM(.9, HO, 8, 6), 1, 1.7, 1), -9.4, 7, 0));
+    g.add(P3(B3(2.2, 1.5, .3, "#E53935"), -3, 11, 4.3)); g.scale.setScalar(1.2); return g; },
+  p_hplush(){ // stuffed hippo toy: chubby lilac body, big round snout, nostrils, little ears and teeth
+    const C = "#B39DDB", D = "#9575CD", PK = "#F8BBD0", g = new THREE.Group();
+    g.add(P3(SC3(SM(6, C, 18, 14), 1.25, .9, .95), 0, 7, 0));
+    for(const [x, z] of [[3.8, -3.4], [3.8, 3.4], [-3.8, -3.4], [-3.8, 3.4]]){ g.add(P3(CY(2, 2.1, 4, C, 10), x, 2, z)); g.add(P3(CY(2.1, 2.1, .6, D, 10), x, .3, z)); }
+    const hd = new THREE.Group(); hd.position.set(6.4, 9.5, 0); g.add(hd);
+    hd.add(SC3(SM(3.9, C, 16, 12), 1, .95, 1.05)); hd.add(P3(SC3(SM(3.6, "#C5B3E6", 16, 12), 1.05, .8, 1.15), 3.4, -1.3, 0));
+    for(const s of [-1, 1]){ hd.add(P3(SC3(SM(.55, "#5E35B1", 8, 6), .6, 1, 1), 6.9, .1, s * 1.5)); hd.add(P3(SM(.7, "#1B120C", 8, 6), 1.4, 2.3, s * 2.2)); hd.add(P3(SM(.24, "#FFFFFF", 6, 4), 1.85, 2.6, s * 2.35));
+      const ear = P3(SC3(SM(1.1, C, 10, 6), .6, 1, .9), -1.6, 3.7, s * 2.4); hd.add(ear); hd.add(P3(SC3(SM(.6, PK, 8, 6), .3, .7, .6), -1.2, 3.7, s * 2.4));
+      hd.add(P3(B3(.8, 1.1, .7, "#FFFDF5"), 6.6, -2.8, s * 1.7)); hd.add(P3(SC3(SM(.8, PK, 8, 6), .4, .6, 1), 2.4, -.4, s * 3.4)); }
+    hd.add(P3(B3(.3, .25, 4.6, "#5E35B1"), 6.4, -2.6, 0));
+    g.add(P3(SC3(SM(4.4, "#D1C4E9", 14, 10), .9, .8, .8), .4, 5.4, 0)); g.add(P3(CY(.4, .2, 2.4, C, 6), -7.8, 7, 0).rotateZ(1.1));
+    g.add(P3(B3(2, 1.4, .3, "#4FC3F7"), -2, 10, 5.7)); g.scale.setScalar(1.15); return g; },
   p_whistle(){ return G3(P3(CY(1.6, 1.6, 4, "#FFD600", 10).rotateZ(Math.PI / 2), 0, 2, 0), P3(SM(2, "#FFD600", 10, 8), -1.5, 2, 0), new THREE.Mesh(new THREE.TorusGeometry(4, .3, 4, 14), m3("#E53935"))); },
   p_oil(){ return G3(P3(CY(2.6, 3, 10, "#FFB300", 12, {transparent: true, opacity: .9}), 0, 5, 0), P3(CY(1.2, 1.2, 3, "#FFFFFF", 8), 0, 11.5, 0), P3(B3(.3, 4, 3.8, "#FFFFFF"), 2.8, 5, 0)); },
   p_sunoil(){ return G3(P3(CY(2.4, 2.6, 9, "#FF7043", 12), 0, 4.5, 0), P3(CY(1, 1.4, 3, "#FFFFFF", 8), 0, 10.5, 0), P3(B3(.3, 3.6, 3.6, "#FFF59D"), 2.5, 4.5, 0)); },
@@ -3238,6 +3460,105 @@ DECOR.pool = (S, A) => { const root = new THREE.Group(); S.add(root);
   // spa stepping stones and sign post to the Grounds
   for(let k = 0; k < 6; k++) root.add(P3(SC3(S3(9, "#BCAAA4", 8, 6), 1, .25, 1), 900 + (k % 2) * 30, .8, 640 + k * 70));
   const sp = new THREE.Group(); sp.add(P3(CY(2, 2, 46, "#8D6E63", 6), 0, 23, 0)); sp.add(P3(B3(46, 12, 3, "#A1887F"), 18, 40, 0)); sp.position.set(680, 0, 80); root.add(sp);
+  return {batch: [root]}; };
+
+/* ---- The Grounds: looks, set pieces, props ---- */
+Object.assign(LOOK3, {
+  bride: {shirt: "#FFFFFF", pants: "#FFFFFF", skin: "#E0AC69", hair: "#4E342E", style: "bun", h: .97, dress: "#FFFFFF", veil: true},
+  groom: {shirt: "#263238", pants: "#263238", skin: "#8D5524", hair: "#212121", style: "short", h: 1.05, tie: "#FFFFFF", collar: "#FFFFFF", bowtie: "#C2185B"},
+  maid: {shirt: "#F48FB1", pants: "#F48FB1", skin: "#FFDBAC", hair: "#FFB300", style: "long", h: .95, dress: "#F48FB1"},
+  officiant: {shirt: "#ECEFF1", pants: "#37474F", skin: "#C68642", hair: "#ECEFF1", style: "short", h: 1.0, robe: true, glasses: true},
+  ringboy: {shirt: "#FFFFFF", pants: "#1A237E", skin: "#E0AC69", hair: "#6D4C41", style: "curly", h: .58, bowtie: "#1A237E"},
+  planner: {shirt: "#00897B", pants: "#263238", skin: "#FFDBAC", hair: "#212121", style: "ponytail", h: .99, badge: true, glasses: true},
+  wphot: {shirt: "#455A64", pants: "#212121", skin: "#F1C27D", hair: "#8D6E63", style: "spiky", h: 1.02, camera: true},
+  gardener: {shirt: "#689F38", pants: "#6D4C41", skin: "#8D5524", hair: "#BDBDBD", style: "short", h: 1.0, apron: "#33691E", hat: "sun", staff: 1},
+  golfer: {shirt: "#F8BBD0", pants: "#B0BEC5", skin: "#FFDBAC", hair: "#FFD54F", style: "short", h: 1.04, vest: "#FFFFFF", hat: "cap", capc: "#FFFFFF"},
+  caddie: {shirt: "#FFFFFF", pants: "#5D4037", skin: "#C68642", hair: "#3E2723", style: "afro", h: .98, vest: "#2E7D32", badge: true},
+  smaster: {shirt: "#1A237E", pants: "#1A237E", skin: "#E0AC69", hair: "#9E9E9E", style: "short", h: 1.03, vest: "#283593", badge: true, hat: "cap", capc: "#1A237E", trim: "#FFD54F"},
+  cond: {shirt: "#212121", pants: "#212121", skin: "#8D5524", hair: "#212121", style: "short", h: 1.06, hat: "cap", capc: "#B71C1C", trim: "#FFD54F", badge: true},
+  wg1: {shirt: "#7986CB", pants: "#283593", skin: "#FFDBAC", hair: "#D84315", style: "curly", h: .98}, wg2: {shirt: "#FFB74D", pants: "#FFB74D", skin: "#8D5524", hair: "#212121", style: "afro", h: .96, dress: "#FFB74D"},
+  wg3: {shirt: "#A1887F", pants: "#4E342E", skin: "#E0AC69", hair: "#ECEFF1", style: "bald", h: 1.0, glasses: true}, wg4: {shirt: "#81C784", pants: "#81C784", skin: "#C68642", hair: "#5D4037", style: "long", h: .95, dress: "#81C784", hat: "sun"},
+});
+
+Object.assign(DECO3, {
+  wchair(d, w, dp){ const W = "#FAFAFA", g = G3(P3(B3(16, 2, 16, W), 0, 13, 0), P3(B3(2, 16, 16, W), -7, 21, 0)); for(const [x, z] of [[-7, -7], [7, -7], [-7, 7], [7, 7]]) g.add(P3(CY(.8, .8, 13, "#E0E0E0", 6), x, 6.5, z));
+    if(d.bow) g.add(P3(SC3(SM(2.6, "#F8BBD0", 10, 6), .6, 1, 1.6), -8, 24, 0));
+    const k = (d.r[0] * 7 + d.r[1] * 3) % 11; g.userData.anim = (t, F) => { const ko = F.chairsKO ? 1 : 0; g.rotation.z += ((ko ? (k % 2 ? 1.5 : -1.4) : 0) - g.rotation.z) * .15; g.rotation.y += ((ko ? k * .5 : 0) - g.rotation.y) * .15; g.position.y = ko ? 4 : 0; }; return g; },
+  arch(d, w){ const g = new THREE.Group(), half = w / 2; for(const s of [-1, 1]) g.add(P3(CY(2.4, 2.8, 70, "#FFFFFF", 10), s * half, 35, 0));
+    for(let k = 0; k <= 16; k++){ const a = k / 16 * Math.PI, y = 70 + Math.sin(a) * 24, x = -Math.cos(a) * half; g.add(P3(SM(3.4, k % 3 ? "#F8BBD0" : "#FFFFFF", 10, 8), x, y, 0)); if(k % 2) g.add(P3(SC3(SM(3, "#81C784", 8, 6), 1.4, .6, 1), x, y - 2, 1.5)); }
+    for(let k = 0; k < 10; k++) for(const s of [-1, 1]) g.add(P3(SM(2.4, k % 2 ? "#F48FB1" : "#A5D6A7", 8, 6), s * half, 8 + k * 6.5, 1.5)); return g; },
+  caketable(d){ const g = G3(P3(CY(20, 20, 2, "#FFFFFF", 20), 0, 34, 0), P3(CY(21, 21, 22, "#FFF8E1", 20), 0, 22, 0), P3(CY(3, 5, 30, "#BCAAA4", 10), 0, 15, 0));
+    const ck = new THREE.Group(); ck.position.y = 35; g.add(ck); [[11, 8], [8, 7], [5, 6]].forEach(([r, h], i) => { const y = [0, 8, 15][i]; ck.add(P3(CY(r, r, h, "#FFFDF7", 20), -6, y + h / 2, 0)); ck.add(P3(CY(r + .3, r + .3, 1.2, "#F8BBD0", 20), -6, y + 1, 0)); });
+    ck.add(P3(SM(1.6, "#F48FB1", 8, 6), -6, 22.5, 0)); const top = ck.children.slice(-3); g.userData.anim = (t, F) => { top.forEach(m => m.visible = !F.cakeEaten); }; return g; },
+  hose(d){ const g = new THREE.Group(), pts = d.pts, G = "#43A047"; // garden hose with a kink bulge and a spray at the sprinkler end
+    for(let i = 0; i < pts.length - 1; i++){ const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], L = Math.hypot(x1 - x0, z1 - z0), m = P3(CY(1.6, 1.6, L, G, 8), (x0 + x1) / 2 - d.cx, 1.6, (z0 + z1) / 2 - d.cz); m.rotation.z = Math.PI / 2; m.rotation.y = -Math.atan2(z1 - z0, x1 - x0); g.add(m); }
+    const [tx, tz] = pts[0], [sx, sz] = pts[pts.length - 1]; g.add(P3(B3(6, 16, 6, "#8D6E63"), tx - d.cx, 8, tz - d.cz)); g.add(P3(CY(2, 2, 6, "#B0BEC5", 8).rotateZ(Math.PI / 2), tx - d.cx + 4, 14, tz - d.cz));
+    g.add(P3(CY(3, 4, 4, "#78909C", 10), sx - d.cx, 2, sz - d.cz)); const bulge = P3(SM(3.4, G, 10, 8), d.kx - d.cx, 3, d.kz - d.cz); bulge.scale.setScalar(.01); g.add(bulge);
+    const spray = new THREE.Group(); spray.position.set(sx - d.cx, 4, sz - d.cz); g.add(spray); for(let k = 0; k < 18; k++) spray.add(SM(1.6, "#B3E5FC", 6, 4, {transparent: true, opacity: .8}));
+    g.userData.anim = (t, F) => { bulge.scale.setScalar(F.kinked ? 1 + Math.sin(t * 9) * .15 : .01);
+      spray.visible = !!F.spray; if(F.spray) spray.children.forEach((s, k) => { const ph = (t * 1.6 + k / 18) % 1, a = k / 18 * 6.28; s.position.set(Math.cos(a) * ph * 50, Math.sin(ph * Math.PI) * 60, Math.sin(a) * ph * 50); }); }; return g; },
+  coop(d, w, dp){ const g = new THREE.Group(), wood = "#A1887F", hw = w / 2, hd = dp / 2;
+    g.add(P3(B3(w * .45, 34, dp - 6, "#D7A86E"), hw * .5, 17, 0)); const roof = P3(B3(w * .52, 4, dp + 8, "#B71C1C"), hw * .5, 37, 0); roof.rotation.x = 0; g.add(roof); g.add(P3(B3(10, 12, 2, "#3E2723"), hw * .5 - w * .23, 14, 0).rotateY(Math.PI / 2));
+    for(let k = 0; k <= w; k += 12){ g.add(P3(CY(.9, .9, 26, wood, 6), -hw + k, 13, -hd)); g.add(P3(CY(.9, .9, 26, wood, 6), -hw + k, 13, hd)); }
+    for(let k = 0; k <= dp; k += 12) g.add(P3(CY(.9, .9, 26, wood, 6), hw, 13, -hd + k));
+    for(const y of [4, 24]){ g.add(P3(B3(w, 1, 1, wood), 0, y, -hd)); g.add(P3(B3(w, 1, 1, wood), 0, y, hd)); g.add(P3(B3(1, 1, dp, wood), hw, y, 0)); }
+    g.add(P3(CY(.9, .9, 26, wood, 6), -hw, 13, -hd + 4)); g.add(P3(CY(.9, .9, 26, wood, 6), -hw, 13, hd - 4));
+    const door = new THREE.Group(); door.position.set(-hw, 0, -hd + 10); g.add(door); door.add(P3(B3(1.4, 26, dp - 20, "#BCAAA4"), 0, 13, (dp - 20) / 2)); for(let k = 0; k < 4; k++) door.add(P3(B3(1.6, 1.4, dp - 20, wood), 0, 4 + k * 7, (dp - 20) / 2));
+    g.userData.anim = (t, F) => { const want = F.coopOpen ? -1.9 : 0; door.rotation.y += (want - door.rotation.y) * .08; }; return g; },
+  flagstick(d){ const g = G3(P3(CY(4, 4, .6, "#1B5E20", 12), 0, .4, 0), P3(CY(.6, .6, 46, "#FFFFFF", 6), 0, 23, 0)); const fl = P3(B3(.4, 9, 14, "#E53935"), 0, 41, 7); g.add(fl);
+    g.userData.anim = (t, F) => { fl.rotation.y = Math.sin(t * 3) * .3; g.visible = !F.flagFetched; }; return g; },
+  stationhut(d, w, dp){ const g = G3(P3(B3(w, 40, dp, "#FFE0B2"), 0, 20, 0), P3(B3(w + 12, 4, dp + 14, "#5D4037"), 0, 42, 0), P3(B3(w * .4, 22, 1, "#6D4C41"), 0, 14, dp / 2 + .4), P3(B3(w * .3, 12, 1, "#B3E5FC"), w * .3, 26, dp / 2 + .4));
+    const l = label3("SAVANNA HALT", 60, 10, "#FFFFFF", "#1A237E"); l.position.set(0, 50, dp / 2 + 2); g.add(l); const b = label3("NEXT TRAIN: ON REQUEST", 46, 7, "#FFD54F", "#263238"); b.position.set(-w * .25, 32, dp / 2 + 1); g.add(b); return g; },
+  train(d){ const g = new THREE.Group(), cars = [["#B71C1C", "ENGINE"], ["#1A237E", "LUGGAGE"], ["#2E7D32", "DINING"], ["#6A1B9A", "SLEEPER"]];
+    cars.forEach(([c, nm], i) => { const car = new THREE.Group(); car.position.x = -i * 132; g.add(car);
+      car.add(P3(B3(124, 40, 44, c), 0, 32, 0)); car.add(P3(B3(128, 4, 48, "#212121"), 0, 54, 0)); car.add(P3(B3(124, 4, 46, "#FFD54F"), 0, 20, 0));
+      for(let k = -2; k <= 2; k++) car.add(P3(B3(14, 12, 46, i ? "#E1F5FE" : "#FFCC80"), k * 22, 38, 0));
+      for(const x of [-42, -28, 28, 42]) for(const s of [-1, 1]){ const wh = P3(CY(8, 8, 3, "#37474F", 14).rotateX(Math.PI / 2), x, 9, s * 20); car.add(wh); }
+      if(i === 0){ car.add(P3(CY(9, 11, 22, "#212121", 12), 40, 66, 0)); car.add(P3(SC3(CY(16, 16, 50, c, 16), 1, 1, 1).rotateZ(Math.PI / 2), 30, 34, 0)); }
+      if(i === 1){ const door = P3(B3(30, 30, 1, "#0D1449"), 0, 30, 23); car.add(door); car.userData.door = door; }
+      const l = label3(nm, 50, 8, "#FFFFFF", c); l.position.set(0, 50, 23); car.add(l); });
+    const smoke = new THREE.Group(); g.add(smoke); for(let k = 0; k < 6; k++) smoke.add(SM(7, "#ECEFF1", 8, 6, {transparent: true, opacity: .7}));
+    g.userData.anim = (t, F) => { const x = F.trainX; g.visible = typeof x === "number" && x > -2000; if(!g.visible) return; g.position.x = d.r[0] + d.r[2] / 2 + x;
+      smoke.children.forEach((s, k) => { const ph = (t * .8 + k / 6) % 1; s.position.set(40 - ph * 70, 80 + ph * 50, Math.sin(k) * 6); s.scale.setScalar(.6 + ph * 1.4); }); }; return g; },
+});
+
+Object.assign(FIXT, {
+  caketop(f){ return new THREE.Group(); },
+  topiary(f){ const g = new THREE.Group(), G = "#4E9A3E", G2 = "#5FB04A", head = new THREE.Group(); // a giraffe clipped out of hedge
+    g.add(P3(B3(34, 8, 34, "#8D6E63"), 0, 4, 0)); g.add(P3(SC3(SM(16, G, 14, 10), 1.3, .8, .7), 0, 30, 0));
+    for(const [x, z] of [[12, -7], [12, 7], [-12, -7], [-12, 7]]) g.add(P3(CY(4, 4, 22, G2, 8), x, 15, z));
+    g.add(P3(CY(4.6, 6, 40, G2, 10).rotateZ(-.25), 14, 55, 0)); head.position.set(22, 76, 0); g.add(head);
+    head.add(SC3(SM(8, G, 12, 8), 1.5, .9, .9)); head.add(P3(CY(1.6, 1.6, 7, G2, 6), -2, 9, -3)); head.add(P3(CY(1.6, 1.6, 7, G2, 6), -2, 9, 3));
+    const stump = P3(SC3(SM(5, "#8BC34A", 10, 6), 1, .5, 1), 18, 74, 0); stump.visible = false; g.add(stump);
+    g.userData.anim = (t, F) => { head.visible = !F.topiaryBit; stump.visible = !!F.topiaryBit; }; return g; },
+  latch(f){ const g = G3(P3(B3(3, 6, 8, "#78909C"), 0, 36, 0), P3(B3(4, 2, 12, "#B0BEC5"), 0, 38, 4)); g.userData.anim = (t, F) => { g.children[1].rotation.x = F.coopOpen ? -1.2 : 0; }; return g; },
+  sigpole(f){ const g = G3(P3(CY(2.4, 3, 110, "#ECEFF1", 10), 0, 55, 0), P3(CY(6, 8, 4, "#90A4AE", 12), 0, 2, 0), P3(B3(2, 8, 2, "#424242"), 2.8, 70, 0));
+    const fl = new THREE.Group(); g.add(fl); fl.add(P3(B3(.6, 18, 26, "#E53935"), 0, 0, 13)); fl.add(P3(B3(.7, 6, 26, "#FFFFFF"), 0, 0, 13));
+    const rope = P3(CY(.35, .35, 1, "#BCAAA4", 4), 2.6, 0, 0); g.add(rope);
+    g.userData.anim = (t, F) => { const want = F.flagUp ? 100 : 14; fl.position.y += (want - fl.position.y) * .06; fl.rotation.y = Math.sin(t * 2.4) * .12; rope.scale.y = fl.position.y; rope.position.y = fl.position.y / 2; }; return g; },
+});
+
+Object.assign(PROPS, {
+  bouquet(){ const g = G3(P3(CY(1.2, 2.4, 8, "#A5D6A7", 8), 0, 4, 0), P3(CY(1.6, 1.6, 1.6, "#FFFFFF", 8), 0, 3, 0)); for(let k = 0; k < 9; k++){ const a = k / 9 * 6.28, r = k ? 3.4 : 0; g.add(P3(SM(2.2, ["#FFFFFF", "#F8BBD0", "#F48FB1"][k % 3], 8, 6), Math.cos(a) * r, 10 + (k ? 0 : 1.5), Math.sin(a) * r)); } return g; },
+  ring(){ const g = G3(P3(SC3(SM(4, "#FFFFFF", 10, 6), 1.2, .45, 1.2), 0, 1.8, 0)); const r = new THREE.Mesh(new THREE.TorusGeometry(1.6, .45, 6, 16), m3("#FFD54F")); r.position.y = 4.2; g.add(r); g.add(P3(SM(.8, "#E1F5FE", 6, 4), 0, 5.8, 0)); return g; },
+  gball(){ return G3(P3(SM(2.2, "#FFFFFF", 10, 8), 0, 2.2, 0)); },
+  chicken(){ const g = new THREE.Group(), W = "#FAFAFA"; g.add(P3(SC3(SM(6, W, 12, 10), 1.2, .9, .9), 0, 9, 0)); g.add(P3(SM(3.6, W, 10, 8), 6, 15, 0)); g.add(P3(new THREE.Mesh(new THREE.ConeGeometry(1.2, 3, 6), m3("#FFB300")).rotateZ(-Math.PI / 2), 10, 15, 0));
+    g.add(P3(SC3(SM(1.6, "#E53935", 8, 6), 1, 1.2, .5), 6, 19, 0)); g.add(P3(SM(.9, "#E53935", 6, 4), 9, 12.8, 0)); for(const s of [-1, 1]){ g.add(P3(SM(.6, "#212121", 6, 4), 8.4, 16, s * 2)); g.add(P3(CY(.5, .5, 5, "#FFB300", 4), 0, 2.5, s * 2.2)); }
+    g.add(P3(SC3(SM(3.4, "#EEEEEE", 8, 6), 1, .8, .4), -6, 13, 0)); return g; },
+  gcart(){ const g = new THREE.Group(); g.add(P3(B3(46, 8, 30, "#FFFFFF"), 0, 12, 0)); g.add(P3(B3(18, 14, 28, "#E8F5E9"), -6, 22, 0)); g.add(P3(B3(48, 2, 32, "#2E7D32"), 0, 46, 0));
+    for(const [x, z] of [[-20, -14], [-20, 14], [20, -14], [20, 14]]) g.add(P3(CY(1, 1, 30, "#B0BEC5", 6), x, 31, z));
+    for(const [x, z] of [[-15, -15], [-15, 15], [15, -15], [15, 15]]) g.add(P3(CY(6, 6, 4, "#263238", 12).rotateX(Math.PI / 2), x, 6, z));
+    g.add(P3(B3(8, 18, 10, "#5D4037"), -22, 22, 0)); for(let k = 0; k < 3; k++) g.add(P3(CY(.7, .7, 14, "#B0BEC5", 6), -22, 34, -3 + k * 3)); return g; },
+});
+
+/* ---- Grounds set dressing: tracks, platform, garden paths, lamps ---- */
+DECOR.grounds = (S, A) => { const root = new THREE.Group(); S.add(root);
+  for(const z of [86, 116]) root.add(P3(B3(1400, 2.4, 3, "#90A4AE"), 700, 3, z)); for(let x = 6; x < 1400; x += 22) root.add(P3(B3(8, 1.6, 44, "#6D4C41"), x, 1, 101));
+  root.add(P3(B3(1400, 1, 60, "#BCAAA4"), 700, .4, 101));
+  root.add(P3(B3(820, 8, 74, "#D7CCC8"), 700, 4, 182)); root.add(P3(B3(820, 1.2, 4, "#FFD54F"), 700, 8.6, 148));
+  for(const [x, y] of [[640, 1110], [780, 1110], [640, 900], [780, 900], [700, 520]]){ const l = new THREE.Group(); l.add(P3(CY(1.6, 2, 46, "#37474F", 8), 0, 23, 0)); l.add(P3(SM(4, "#FFF59D", 10, 8, {emissive: "#FFB300"}), 0, 49, 0)); l.position.set(x, 0, y); root.add(l); }
+  for(let k = 0; k < 14; k++) root.add(P3(SC3(SM(8, "#BCAAA4", 8, 6), 1, .2, 1), 690 + (k % 2) * 20, .6, 300 + k * 52));
+  const sign = new THREE.Group(); sign.add(P3(CY(2, 2, 40, "#8D6E63", 6), 0, 20, 0)); const l1 = label3("⛳ GOLF", 34, 8, "#FFFFFF", "#2E7D32"); l1.position.set(14, 38, 0); sign.add(l1); const l2 = label3("💒 WEDDING", 40, 8, "#FFFFFF", "#AD1457"); l2.position.set(-14, 28, 0); sign.add(l2); sign.position.set(740, 0, 980); root.add(sign);
   return {batch: [root]}; };
 
 class R3 {
@@ -3282,7 +3603,7 @@ class R3 {
       const g = G3(P3(B3(w, H, h, "#F3E5C8"), 0, H / 2, 0), P3(B3(w + 2, 5, h + 2, "#A9744A"), 0, H, 0), P3(B3(w + 1, 8, h + 1, "#C49A6C"), 0, 4, 0));
       g.position.set(x + w / 2, 0, y + h / 2); S.add(g); this.cut = this.cut || []; (this.walls = this.walls || []).push({g, r, horiz: w > h}); }
     // doors
-    this.doors = (A.doors || []).map(d => { const [x, y, w, h] = d.r, half = w / 2, mk = s => { const hinge = new THREE.Group(); hinge.position.set(s < 0 ? x : x + w, 0, y + h / 2);
+    this.doors = (A.doors || []).filter(d => !d.hide).map(d => { const [x, y, w, h] = d.r, half = w / 2, mk = s => { const hinge = new THREE.Group(); hinge.position.set(s < 0 ? x : x + w, 0, y + h / 2);
         const leaf = G3(P3(B3(half - 2, 62, 6, "#9C5B2E"), s < 0 ? half / 2 : -half / 2, 31, 0), P3(B3(half - 10, 22, 6.6, "#B97A45"), s < 0 ? half / 2 : -half / 2, 44, 0), P3(S3(2, "#FFD54F", 6, 4), s < 0 ? half - 8 : -half + 8, 30, 4));
         hinge.add(leaf); S.add(hinge); return {hinge, s}; };
       const lint = new THREE.Group(); lint.position.set(x + w / 2, 0, y + h / 2); const top = P3(B3(w + 16, 10, 20, "#A9744A"), 0, 72, 0); top.castShadow = true; lint.add(top);
@@ -3388,13 +3709,13 @@ class R3 {
     // people
     const npcs = p.npcView(), wt = p.host ? p.world.t : 0;
     for(const n of npcs){ const h = this.npcM[n.id]; if(!h) continue; if(isNaN(n.x)){ h.g.visible = false; continue; } h.g.visible = true;
-      const mv = typeof n.moving === "number" ? wt - n.moving < .15 : !!n.moving; h.g.position.set(n.x, 0, n.y); h.g.rotation.y = -n.dir;
+      const mv = typeof n.moving === "number" ? wt - n.moving < .15 : !!n.moving; const nd0 = (p.A.npcs || []).find(q => q.id === n.id), seat = n.st === "sit" && nd0 && nd0.seatY && Math.hypot(n.x - nd0.x, n.y - nd0.y) < 8 ? nd0.seatY : 0; h.g.position.set(n.x, seat, n.y); h.g.rotation.y = -n.dir;
       const sitting = n.st === "sit", sp = n.st === "chase" ? 16 : 10, sw = mv ? Math.sin(t * sp + strHash(n.id)) * (n.st === "chase" ? .8 : .55) : 0;
       h.legL.rotation.z = sitting ? 1.5 : sw; h.legR.rotation.z = sitting ? 1.5 : -sw; h.body.position.y = sitting ? -6 : (mv ? Math.abs(Math.sin(t * sp)) * 1.5 : 0);
       const flail = n.st === "busy" || (n.emo && /💢|😱|😤/.test(n.emo.e)); h.armL.rotation.z = flail ? 2.6 + Math.sin(t * 14) * .4 : -sw * .8; h.armR.rotation.z = flail ? 2.6 - Math.sin(t * 14) * .4 : sw * .8;
       if(n.st === "chase"){ h.armL.rotation.z = 1.4; h.armR.rotation.z = 1.4; }
       h.head.rotation.y = n.st === "investigate" ? Math.sin(t * 3) * .7 : 0;
-      humanLife(h, n, t, dt); const top = 70 + (sitting ? -6 : 0); this.place("e" + n.id, "emo3", n.x, top + 4, n.y, n.emo ? n.emo.e : (n.st === "chase" ? "❗" : n.st === "investigate" ? "❓" : null));
+      humanLife(h, n, t, dt); const top = 70 + seat + (sitting ? -6 : 0); this.place("e" + n.id, "emo3", n.x, top + 4, n.y, n.emo ? n.emo.e : (n.st === "chase" ? "❗" : n.st === "investigate" ? "❓" : null));
       this.place("b" + n.id, "bub3", n.x, top + (n.emo || n.st === "chase" || n.st === "investigate" ? 26 : 6), n.y, n.bub ? esc(n.bub.txt) : null); }
     // objects
     const objs = p.objView(), npcById = Object.fromEntries(npcs.map(n => [n.id, n]));
@@ -3581,12 +3902,12 @@ class Play {
     for(const e of list){ if(e.i <= this.seenE) continue; this.seenE = e.i;
       const mine = e.who === this.role, pp = this.partnerPos();
       if(e.k === "splash"){ this.fx.push({k: "splash", x: e.x, y: e.y, t: this.t}); SFX.splash(); }
-      if(e.k === "noise"){ this.fx.push({k: "noise", x: e.x, y: e.y, who: e.who, t: this.t}); if(!mine) (e.who === "G" ? SFX.snort : SFX.bellow)(); }
+      if(e.k === "noise"){ if(this.r3) (this.r3.mouthAt || (this.r3.mouthAt = {}))[e.who] = {t: performance.now() / 1000, k: "noise"}; this.fx.push({k: "noise", x: e.x, y: e.y, who: e.who, t: this.t}); if(!mine) (e.who === "G" ? SFX.snort : SFX.bellow)(); }
       if(e.k === "flash"){ const n = this.npcView().find(n => n.id === e.obj); if(n) this.fx.push({k: "flash", x: n.x, y: n.y, t: this.t}); SFX.camera(); }
       if(e.k === "snap"){ this.fx.push({k: "snap", x: e.x, y: e.y, t: this.t}); setTimeout(() => this.capture(), 60); }
       if(e.k === "fx"){ this.fx.push({k: "snap", x: e.x, y: e.y, t: this.t}); SFX.boing(); }
       if(e.k === "say"){ const n = this.A.npcs.findIndex(n => n.id === e.obj); if(SFX[e.s]) SFX[e.s](.85 + (n % 4) * .12); }
-      if(e.k === "grab" && mine) SFX.grab();
+      if(e.k === "grab"){ if(mine) SFX.grab(); if(this.r3) (this.r3.mouthAt || (this.r3.mouthAt = {}))[e.who] = {t: performance.now() / 1000, k: "grab"}; }
       if(e.k === "drop" && mine) SFX.drop();
       if(e.k === "wear" && mine){ SFX.boing(); this.toast("Looking good."); }
       if(e.k === "sit" && !mine) SFX.plop();
