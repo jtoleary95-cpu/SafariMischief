@@ -2255,15 +2255,298 @@ area({
   ],
 });
 
-/* ===== Area 4: The Train (placeholder until its list is approved) ===== */
+
+/* ===== Area 4: The Train (side view) ===== */
+const TPASS = ["d1", "d2", "lean", "s1", "s2", "insp", "pass1", "pass2"];
+const trDone = W => Object.keys(W.done).filter(k => !W.A.pranks.find(p => p.id === k)?.unlock).length;
+const trPart = x => [RC(x - 4, 62, 8, 53), RC(x - 4, 185, 8, 35)];
 area({
-  name: "The Train", w: 1200, h: 1000, ground: "#C8B27A", amb: "camp", decor: "poolstub",
-  start: {G: [570, 900], H: [640, 900]}, entrance: [600, 940], from: {2: {G: [570, 880], H: [640, 880]}},
-  exits: [{z: [520, 940, 160, 60], to: 2, label: "The Grounds"}],
-  walls: [...wallH(960, 0, 520), ...wallH(960, 680, 1200)],
-  floors: [{r: [520, 600, 160, 400], c: PAL.path}], trees: [[120, 600, 40], [1080, 300, 36]], zones: {},
-  deco: [{r: [480, 560, 240, 40], m: "counter", label: "THE TRAIN · COMING SOON", c: "#B71C1C", top: "#FFCDD2", solid: true}],
-  fix: [], objs: [], npcs: [], pranks: [],
+  name: "The Train", w: 2800, h: 260, ground: "#6D4C41", amb: "camp", unlock: "brake", unlockAt: 6, decor: "train", side: {z: 140}, noGrass: true,
+  start: {G: [320, 170], H: [400, 175]}, entrance: [360, 170], from: {2: {G: [320, 170], H: [400, 175]}},
+  exits: [{z: [2730, 120, 62, 92], to: 4, need: "atCamp", label: "Savanna Camp"}],
+  pen: {r: [70, 80, 150, 110], gate: "gate", drop: [36, 150], guard: [30, 150, 0], label: "luggage cage"},
+  walls: [RC(0, 62, 2800, 8), RC(0, 212, 2800, 8), RC(0, 62, 8, 158), RC(2792, 62, 8, 158), ...trPart(700), ...trPart(1400), ...trPart(2100),
+    RC(62, 72, 166, 8), RC(220, 72, 8, 126), RC(62, 190, 166, 8), RC(62, 72, 8, 48), RC(62, 180, 8, 18)],
+  floors: [{r: [8, 70, 692, 142], c: "#8D6E63"}, {r: [700, 70, 700, 142], c: "#A1887F"}, {r: [1400, 70, 700, 142], c: "#7E6B8F"}, {r: [2100, 70, 692, 142], c: "#6D6D6D"}, {r: [700, 172, 700, 40], c: "#B71C1C"}],
+  zones: {dside: [705, 172, 690, 40], lampz: [955, 110, 90, 75], tabA: [800, 82, 90, 50], tabB: [1120, 82, 90, 50], bunk1: [1460, 72, 180, 46], bunk2: [1760, 72, 180, 46],
+    leverz: [2405, 140, 90, 72], dining: [700, 62, 700, 158], sleeper: [1400, 62, 700, 158], cage: [70, 80, 150, 110]},
+  deco: [
+    {r: [0, 40, 700, 22], m: "twall", wins: 4}, {r: [700, 40, 700, 22], m: "twall", wins: 5}, {r: [1400, 40, 700, 22], m: "twall", wins: 4}, {r: [2100, 40, 700, 22], m: "twall", wins: 3},
+    {r: [660, 120, 80, 80], m: "tpart", label: "DINING"}, {r: [1360, 120, 80, 80], m: "tpart", label: "SLEEPER"}, {r: [2060, 120, 80, 80], m: "tpart", label: "ENGINE"},
+    {r: [270, 76, 70, 34], m: "boxes", solid: true}, {r: [380, 66, 260, 20], m: "lrack"},
+    {r: [800, 82, 90, 50], m: "dtable", solid: true}, {r: [1120, 82, 90, 50], m: "dtable", solid: true}, {r: [1290, 74, 80, 30], m: "tseat", c: "#3949AB"},
+    {r: [1460, 72, 180, 40], m: "bunk"}, {r: [1760, 72, 180, 40], m: "bunk"}, {r: [1990, 74, 80, 30], m: "tseat", c: "#5D4037"},
+    {r: [460, 74, 70, 30], m: "tseat"}, {r: [560, 74, 70, 30], m: "tseat"},
+    {r: [2580, 64, 180, 40], m: "controls", solid: true},
+  ],
+  fix: [
+    {id: "lamp", m: "tlamp", x: 1000, y: 70, r: 8, label: "emergency lamp"},
+    {id: "glA", m: "glasses", x: 845, y: 100, r: 6}, {id: "glB", m: "glasses", x: 1165, y: 100, r: 6},
+    {id: "cord", m: "cord", x: 2300, y: 76, r: 10, high: true, label: "emergency cord"},
+    {id: "lever", m: "lever", x: 2450, y: 182, r: 10, label: "brake lever"},
+    {id: "gate", m: "pengate", x: 62, y: 150, r: 18},
+  ],
+  objs: [
+    {id: "lphat", m: "sunhat", x: 300, y: 128, wear: true, wearBy: "G", r: 10, name: "lost-property hat"},
+    {id: "scarf", m: "scarf", x: 345, y: 132, wear: true, wearBy: "G", wy: 14, r: 9},
+    {id: "lunch", m: "lunch", x: 500, y: 78, high: true, hy: 66, own: "cond", r: 9},
+    {id: "pud1", m: "cakeslice", x: 845, y: 108, high: true, hy: 30, own: "d1", r: 8}, {id: "pud2", m: "jelly", x: 1165, y: 108, high: true, hy: 30, own: "d2", r: 8},
+    {id: "lhat", m: "tophat", on: "lean", snatch: true, own: "lean", guard: "leanOut", r: 10},
+    {id: "pil1", m: "pillow", x: 1495, y: 92, high: true, hy: 24, col: "#90CAF9", r: 10}, {id: "pil2", m: "pillow", x: 1905, y: 92, high: true, hy: 24, col: "#F48FB1", r: 10},
+    {id: "punch", m: "punch", x: 2065, y: 150, own: "insp", r: 7, name: "hole punch"},
+  ],
+  npcs: [
+    {id: "cond", look: "cond", x: 420, y: 190, beh: "route", staff: true, name: "Conductor", route: [[420, 190, 4], [1050, 195, 3], [1750, 195, 3], [2350, 195, 4], [1750, 195, 2], [1050, 195, 2]],
+      hints: [{p: "lunch", t: "My lunch stays up on the rack where nobody can reach it."}, {p: "brake", t: "Next stop is NOT Savanna Camp. We never stop there. Emergencies only."}]},
+    {id: "driver", look: "driver", x: 2640, y: 120, beh: "post", face: -Math.PI / 2, staff: true, name: "Driver", hints: [{p: "brake", t: "That emergency cord's been jammed for years. Only budges if someone leans on the brake."}]},
+    {id: "d1", look: "diner1", x: 820, y: 150, beh: "sit", face: -Math.PI / 2, hints: [{p: "dessert", t: "When the lights go out in the tunnel, that little lamp is all we've got."}]},
+    {id: "d2", look: "diner2", x: 1180, y: 150, beh: "sit", face: -Math.PI / 2, hints: [{p: "drinks", t: "Every time we take a curve the drinks wobble. One heavy passenger on the wrong side and…"}]},
+    {id: "lean", look: "leaner", x: 1330, y: 112, beh: "sit", face: -Math.PI / 2, name: "Passenger", hints: [{p: "hat", t: "I love sticking my head out the window. Hat stays on, of course."}]},
+    {id: "s1", look: "sleeper", x: 1560, y: 100, beh: "sit", face: Math.PI / 2, hints: [{p: "pillow", t: "zzz… my blue pillow… zzz"}]}, {id: "s2", look: "sleeper", x: 1860, y: 100, beh: "sit", face: Math.PI / 2, hints: [{p: "pillow", t: "*snore*… pink… fluffy… *snore*"}]},
+    {id: "insp", look: "insp", x: 2030, y: 112, beh: "sit", face: Math.PI / 2, staff: true, name: "Ticket inspector", hints: [{p: "punch", t: "Tickets please. I always nod off after the tunnel… never with my punch out of reach."}]},
+    {id: "pass1", look: "pass1", x: 495, y: 112, beh: "sit", face: Math.PI / 2}, {id: "pass2", look: "pass2", x: 595, y: 112, beh: "sit", face: Math.PI / 2},
+  ],
+  hooks: {
+    grab(W, id, role){
+      if(id === "lunch" && grFacing(W, "cond", W.P[role].x, W.P[role].y, 260)){ const o = W.o("lunch"); o.holder = ""; o.x = 500; o.y = 78; o.high = true; W.say("cond", "That's MY lunch! Paws off!", 2.4, "hey"); W.chase("cond", role); return; }
+      if(id === "lhat" && W.flag.leanOut && !W.flag.hatOff){ W.hide("lhat"); W.set("hatOff"); W.say("lean", "MY HAT! It's gone out the window!", 3, "scream"); W.emote("lean", "🎩", 3); return; }
+      if((id === "pud1" || id === "pud2") && !(W.flag.dark && W.flag.lampBlocked)){ const own = id === "pud1" ? "d1" : "d2"; W.say(own, "Hey! That's my pudding!", 2, "hey"); const o = W.o(id); o.holder = ""; o.x = o.home[0]; o.y = o.home[1]; o.high = true; }
+    },
+    drop(W, id, role){
+      if(id === "punch" && W.flag.dozing && !W.flag.punched && W.near("punch", "insp", 70)){ W.set("punched"); W.emit("say", {obj: "", s: "beep"}); W.say("insp", "…*click*… mm, ticket's fine… zzz", 3); }
+      if((id === "pud1" || id === "pud2") && !(W.flag.dark && W.flag.lampBlocked)){ const own = id === "pud1" ? "d1" : "d2"; if(W.near(id, own, 260)){ W.say(own, "Is that a GIRAFFE with my pudding?!", 2.4, "gasp"); const o = W.o(id); o.x = o.home[0]; o.y = o.home[1]; o.high = true; } }
+    },
+    use(W, id, role){
+      if(id !== "cord" || role !== "G" || W.flag.atCamp || W.flag.braking) return;
+      if(!W.flag.onLever){ W.say("driver", "That cord's been jammed for YEARS.", 2.4, "grumble"); W.emit("say", {obj: "", s: "thump"}); return; }
+      W.set("braking"); W.emit("say", {obj: "", s: "crash"}); W.emit("pa", {}); W.emit("dust", {x: 2300, y: 160});
+      if(W.flag.campNear){ W.script("driver", [{say: "EMERGENCY STOP?! Right outside… Savanna Camp?!", s: "scream", t: 3}, {wait: 2}, {set: "atCamp"}, {say: "Fine. Everybody off who's getting off.", t: 2.5, s: "grumble"}]);
+        TPASS.forEach(p => W.emote(p, "😵", 2)); }
+      else W.script("driver", [{say: "EMERGENCY STOP?! In the middle of nowhere?", s: "gasp", t: 2.5}, {wait: 3}, {set: "braking", v: 0}, {say: "Just a warthog. Carrying on!", t: 2}]); },
+    noise(W, role){
+      if(role === "H" && W.flag.dark && !W.flag.ghost){ const near = TPASS.filter(id => W.near("H", id, 360)); if(near.length >= 2){ W.set("ghost"); near.forEach((id, i) => { W.say(id, ["A GHOST!", "The train is HAUNTED!", "MUMMY!"][i % 3], 2.4, "scream"); W.emote(id, "👻", 3); }); } }
+    },
+    tick(W, dt){ const F = W.flag, H = W.P.H, c = W.t % 60;
+      // the route: a long curve, then a tunnel where the lights go out (none of it once you've stopped)
+      const rolling = !F.atCamp && !F.braking; const curve = rolling && c > 8 && c < 17, dark = rolling && c > 32 && c < 46;
+      if(!!F.curve !== curve){ F.curve = curve ? 1 : 0; if(curve) W.say("cond", "Hold on to your drinks, folks, big curve!", 2.4); }
+      if(!!F.dark !== dark){ F.dark = dark ? 1 : 0; if(dark) W.emit("say", {obj: "", s: "horn"}); }
+      F.lampBlocked = F.dark && H && W.inZ("H", "lampz") ? 1 : 0; F.onLever = H && W.inZ("H", "leverz") ? 1 : 0;
+      // drinks slide off when Harriet's weight sits on the outside of the curve
+      if(F.curve && H && H.sit && W.inZ("H", "dside") && !F.drinksSlid){ W.cnt.dsT = (W.cnt.dsT || 0) + dt; if(W.cnt.dsT > 1.6){ W.set("drinksSlid"); W.emit("say", {obj: "", s: "crash"}); W.say("d1", "My DRINK!", 2, "scream"); W.say("d2", "Everything's sliding!", 2, "gasp"); } } else W.cnt.dsT = 0;
+      // the window passenger leans out for a while
+      W.cnt.lnT = (W.cnt.lnT || 0) + dt; const ln = W.npc("lean");
+      if(!F.leanOut && W.cnt.lnT > 14 && !F.dark){ W.cnt.lnT = 0; F.leanOut = 1; ln.dir = -Math.PI / 2; W.say("lean", "Wheee, what a breeze!", 2.4, "laugh"); }
+      if(F.leanOut && W.cnt.lnT > 8){ W.cnt.lnT = 0; F.leanOut = 0; }
+      // the inspector nods off after the tunnel
+      W.cnt.dzT = (W.cnt.dzT || 0) + dt; if(!F.dozing && W.cnt.dzT > 18){ W.cnt.dzT = 0; F.dozing = 1; W.emote("insp", "💤", 12); } if(F.dozing && W.cnt.dzT > 12){ W.cnt.dzT = 0; F.dozing = 0; W.say("insp", "Hm! Awake. Tickets please.", 2); }
+      // after six tasks the conductor admits the camp is coming up
+      if(!F.campNear && trDone(W) >= (W.A.unlockAt || 0)){ F.campNear = 1; W.say("cond", "Coming up: Savanna Camp. Which we do NOT stop at. Ever.", 3.5); }
+    },
+  },
+  pranks: [
+    {id: "outfit", text: "Wear the lost-property sun hat and scarf", who: "G", check: W => W.wearing("G", "lphat") && W.wearing("G", "scarf")},
+    {id: "drinks", text: "Sit on one side on a curve so every drink slides off", who: "H", big: true, check: W => W.flag.drinksSlid},
+    {id: "lunch", text: "Steal the conductor's lunch off the luggage rack", who: "G", check: W => W.holds("G", "lunch") || W.holds("H", "lunch")},
+    {id: "pillow", text: "Swap the sleeping passengers' pillows", who: "G", check: W => W.inZ("pil1", "bunk2") && W.inZ("pil2", "bunk1") && !W.o("pil1").holder && !W.o("pil2").holder},
+    {id: "ghost", text: "Ghost-train bellow when the tunnel lights go out", who: "H", big: true, check: W => W.flag.ghost},
+    {id: "hat", text: "Knock the hat off the passenger leaning out the window", who: "G", check: W => W.flag.hatOff},
+    {id: "punch", text: "Punch the inspector's own ticket while he dozes", who: "G", check: W => W.flag.punched},
+    {id: "dessert", text: "Swap the desserts in the tunnel dark", who: "B", big: true, check: W => W.inZ("pud1", "tabB") && W.inZ("pud2", "tabA") && !W.o("pud1").holder && !W.o("pud2").holder},
+    {id: "brake", text: "Stop the train at Savanna Camp", who: "B", big: true, unlock: true, check: W => W.flag.atCamp},
+  ],
+});
+
+/* ===== Area 5: Savanna Camp ===== */
+const CBELLS = [["b1", 245, 480], ["b2", 1115, 480], ["b3", 245, 940], ["b4", 1115, 940]];
+const cpDone = W => Object.keys(W.done).filter(k => !W.A.pranks.find(p => p.id === k)?.unlock).length;
+area({
+  name: "Savanna Camp", w: 1400, h: 1200, ground: "#C9C27A", amb: "camp", unlock: "sunset", unlockAt: 6, decor: "camp",
+  start: {G: [660, 232], H: [740, 236]}, entrance: [700, 232], from: {3: {G: [660, 232], H: [740, 236]}, 5: {G: [1290, 620], H: [1290, 680]}},
+  exits: [{z: [1346, 560, 54, 120], to: 5, need: "riverOpen", label: "The River"}],
+  pen: {r: [1170, 230, 150, 120], gate: "gate", drop: [1135, 300], guard: [1118, 300, 0], label: "thorn boma"},
+  walls: [RC(0, 140, 1400, 8), RC(1336, 148, 8, 412), RC(1336, 680, 8, 380),
+    RC(1162, 222, 166, 8), RC(1320, 222, 8, 136), RC(1162, 350, 166, 8), RC(1162, 222, 8, 48), RC(1162, 330, 8, 28)],
+  doors: [{id: "rivergate", r: [1336, 560, 8, 120], flag: "riverOpen", hide: true}],
+  floors: [{r: [520, 146, 360, 60], c: "#D7CCC8"}, {r: [640, 206, 120, 860], c: "#E0C890"}, {r: [140, 600, 1120, 40], c: "#E0C890"}, {r: [1000, 600, 340, 40], c: "#E0C890"}],
+  water: [[0, 1070, 1400, 90, "river"], [820, 240, 150, 90, "mud"]],
+  trees: [[200, 560, 32], [1250, 690, 26], [420, 180, 30], [80, 400, 34], [80, 1000, 30], [1000, 1000, 34], [960, 200, 28]],
+  zones: {blanket: [480, 1000, 140, 60], tub: [1170, 846, 90, 64], slipspot: [1060, 455, 52, 36], tree1: [150, 510, 100, 100], hammock: [190, 628, 90, 54],
+    cage: [1170, 230, 150, 120], mud: [820, 240, 150, 90]},
+  deco: [
+    {r: [190, 360, 110, 90], m: "luxtent", label: "TENT 1", solid: true}, {r: [1060, 360, 110, 90], m: "luxtent", label: "TENT 2", solid: true},
+    {r: [190, 820, 110, 90], m: "luxtent", label: "TENT 3", solid: true}, {r: [1060, 820, 110, 90], m: "luxtent", label: "TENT 4", solid: true},
+    {r: [610, 560, 180, 130], m: "dtent"}, {r: [480, 1000, 140, 60], m: "blanket"}, {r: [1180, 860, 70, 40], m: "tub"}, {r: [180, 640, 110, 30], m: "hammock"},
+    {r: [1336, 560, 8, 120], m: "rgate"},
+    {r: [900, 700, 30, 30], m: "plant"}, {r: [470, 700, 30, 30], m: "plant"},
+  ],
+  fix: [
+    ...CBELLS.map(([id, x, y], i) => ({id, m: "sbell", x, y, r: 10, label: "tent " + (i + 1) + " bell"})),
+    {id: "stake", m: "stake", x: 600, y: 702, r: 10, label: "tent stake"},
+    {id: "topline", m: "topline", x: 700, y: 556, r: 10, high: true, label: "top line"},
+    {id: "tclock", m: "tclock", x: 600, y: 232, r: 12, high: true, solid: true, label: "tour clock"},
+    {id: "tbell", m: "tbell", x: 1290, y: 600, r: 16, solid: true, label: "tour bell"},
+    {id: "gate", m: "pengate", x: 1162, y: 300, r: 18},
+  ],
+  objs: [
+    {id: "tray", m: "tray", on: "butler", snatch: true, own: "butler", guard: "never", r: 10, name: "silver tray"},
+    {id: "binocs", m: "binocs", on: "birder", snatch: true, own: "birder", guard: "never", highDrop: true, r: 8},
+    {id: "slippers", m: "slippers", x: 1085, y: 472, r: 8},
+    {id: "coco1", m: "coconut", x: 1240, y: 730, r: 8}, {id: "coco2", m: "coconut", x: 1275, y: 745, r: 8},
+    ...[[110, 640], [130, 700], [520, 470], [880, 470], [880, 760]].map(([x, y], i) => ({id: "cflower" + (i + 1), m: "flower", x, y, r: 8, col: ["#FFD54F", "#FF8A65", "#CE93D8", "#FFFFFF", "#F48FB1"][i], colFrom: "f48fb1"})),
+  ],
+  npcs: [
+    {id: "butler", look: "butler", x: 700, y: 760, beh: "post", face: Math.PI / 2, staff: true, name: "Butler",
+      hints: [{p: "tray", t: "When a guest rings, I go straight to their tent and bow. Tray in hand, always."}, {p: "bells", t: "Four tents, four bells. Heaven help me if they all ring at once."}]},
+    {id: "guide2", look: "guide2", x: 1290, y: 700, beh: "post", face: Math.PI, staff: true, calm: true, name: "River guide",
+      hints: [{p: "sunset", t: "Sunset boat tour, six o'clock by the tour clock. I open the gate when the bell rings."}]},
+    {id: "birder", look: "birder", x: 420, y: 300, beh: "post", face: -Math.PI / 2, name: "Birdwatcher", hints: [{p: "binocs", t: "Shh. I'm watching the weaver birds. Eyes forward, binoculars up."}]},
+    {id: "pk1", look: "pk1", x: 462, y: 1030, beh: "sit", face: 0, hints: [{p: "picnic", t: "Every few minutes we tug the blanket straight. It's a whole thing."}]}, {id: "pk2", look: "pk2", x: 638, y: 1030, beh: "sit", face: Math.PI},
+    {id: "sg", look: "sg", x: 1000, y: 470, beh: "wander", rad: 40, name: "Tent 2 guest", hints: [{p: "slippers", t: "My slippers live on the porch. Never go anywhere without them."}]},
+    {id: "tubguest", look: "tubguest", x: 1150, y: 980, beh: "wander", rad: 40, name: "Tent 4 guest", hints: [{p: "tub", t: "Outdoor bath at sunset. Nothing but warm, clean water."}, {p: "hammock", t: "That hammock's rated for one small person. Do NOT test it."}]},
+    {id: "dn1", look: "dn1", x: 662, y: 625, beh: "sit", face: 0, hints: [{p: "tent", t: "This marquee's held up by one stake and one top line. Lovely, isn't it?"}]}, {id: "dn2", look: "dn2", x: 738, y: 625, beh: "sit", face: Math.PI},
+  ],
+  hooks: {
+    use(W, id, role){ const F = W.flag, C = W.cnt;
+      const bi = CBELLS.findIndex(b => b[0] === id);
+      if(bi >= 0){ C["rung" + bi] = W.t; const bt = W.npc("butler");
+        if(!F.bellChaos && CBELLS.every((b, i) => W.t - (C["rung" + i] ?? -99) < 12)){ W.set("bellChaos");
+          W.script("butler", [{say: "Coming! COMING! Everyone at ONCE?!", s: "scream", t: 3}, ...[0, 1, 3, 2, 0, 1].map(i => ({go: [CBELLS[i][1], CBELLS[i][2] + 30], run: 1})), {emote: "😵‍💫", t: 3}, {wait: 2.5, spin: 1}, {say: "I need a lie down.", t: 2.4, s: "grumble"}, {go: [700, 760]}, {face: Math.PI / 2}]); return; }
+        if(bt.st === "post" || bt.st === "investigate") W.script("butler", [{go: [CBELLS[bi][1], CBELLS[bi][2] + 30]}, {face: -Math.PI / 2}, {say: "You rang, sir?", t: 2.4}, {wait: 3.5}, {say: "…Hello?", t: 1.8, s: "grumble"}, {go: [700, 760]}, {face: Math.PI / 2}]);
+        return; }
+      if(id === "stake" && role === "H" && !F.tentDown){ F.stakeOut = 1; C.stT = W.t; W.emit("say", {obj: "", s: "thump"}); if(!(F.lineOut && W.t - C.lnT < 8)) W.say("dn1", "Did the tent just… wobble?", 2.2, "gasp"); }
+      if(id === "topline" && role === "G" && !F.tentDown){ F.lineOut = 1; C.lnT = W.t; W.emit("say", {obj: "", s: "boing"}); if(!(F.stakeOut && W.t - C.stT < 8)) W.say("dn2", "Hm. The roof's sagging a bit.", 2.2); }
+      if(F.stakeOut && F.lineOut && !F.tentDown && Math.abs(C.stT - C.lnT) < 8){ W.set("tentDown"); W.fx("poof", 700, 625); W.emit("say", {obj: "", s: "crash"});
+        ["dn1", "dn2"].forEach((d, i) => W.script(d, [{say: ["THE TENT!", "I'm wearing the soup!"][i], s: "scream", t: 2.5}, {emote: "😱", t: 3}, {wait: 3}, {st: "sit"}])); W.say("butler", "The MARQUEE!", 2.5, "scream"); }
+    },
+    noise(W, role){ const F = W.flag;
+      if(role === "H" && W.near("H", "tbell", 120) && !F.riverOpen){ F.tourBell = 1; W.cnt.tbT = W.t; W.emit("say", {obj: "", s: "beep"}); const hr = (2 + W.uses("tclock")) % 12 || 12;
+        if(hr === 6 && cpDone(W) >= (W.A.unlockAt || 0)) W.script("guide2", [{say: "Sunset already?! Boat tour, everyone! All aboard!", s: "laugh", t: 3}, {go: [1300, 620]}, {face: 0}, {wait: 1.2}, {set: "riverOpen"}, {say: "Follow me down to the river!", t: 2.4}, {go: [1380, 620]}]);
+        else if(hr === 6) W.say("guide2", "Sunset tour? Nobody's even signed up yet. Come back later.", 3, "grumble");
+        else W.say("guide2", `Tour's at sunset. Clock says ${hr} o'clock.`, 2.6, "grumble"); }
+    },
+    tick(W, dt){ const F = W.flag, C = W.cnt, H = W.P.H;
+      if(F.tourBell && W.t - C.tbT > 2) F.tourBell = 0;
+      if(F.stakeOut && !F.tentDown && W.t - C.stT > 8){ F.stakeOut = 0; } if(F.lineOut && !F.tentDown && W.t - C.lnT > 8){ F.lineOut = 0; }
+      // picnic: every so often they tug the blanket straight
+      C.pkT = (C.pkT || 0) + dt; if(!F.tugging && C.pkT > 20 && !F.picnicDunk){ C.pkT = 0; F.tugging = 1; W.say("pk1", "Grab your end, let's straighten it!", 2.4); }
+      if(F.tugging && C.pkT > 4){ F.tugging = 0; C.pkT = 0; }
+      if(F.tugging && H && H.sit && W.inZ("H", "blanket") && !F.picnicDunk){ W.set("picnicDunk"); F.tugging = 0; W.fx("poof", 550, 1060); W.emit("say", {obj: "", s: "splash"});
+        W.say("pk1", "THE SANDWICHES!", 2.5, "scream"); W.say("pk2", "It's all in the STREAM!", 2.5, "scream"); }
+      // mud bath at the waterhole, then the outdoor tub
+      if(H && H.sit && W.inZ("H", "mud")) C.mudAt = W.t;
+      if(H && H.sit && W.inZ("H", "tub") && !F.tubMud){ if(W.t - (C.mudAt ?? -99) < 30){ W.set("tubMud"); W.say("tubguest", "MY BATH! It's all MUD!", 2.8, "scream"); W.emit("say", {obj: "", s: "splash"}); }
+        else if(!C.tubSaid){ C.tubSaid = 1; W.say("tubguest", "Oi! Out of my nice clean bath!", 2.4, "hey"); } }
+      if(!(H && H.sit && W.inZ("H", "tub"))) C.tubSaid = 0;
+      // hammock: rated for one small person
+      const inHam = H && H.sit && W.inZ("H", "hammock"); F.hamSag = inHam && !F.hammockSnap ? 1 : 0;
+      if(inHam && !F.hammockSnap){ C.hmT = (C.hmT || 0) + dt; if(C.hmT > 3){ W.set("hammockSnap"); W.emit("say", {obj: "", s: "crash"}); W.say("tubguest", "The HAMMOCK! I TOLD you!", 2.5, "gasp"); } } else C.hmT = 0;
+    },
+  },
+  pranks: [
+    {id: "tray", text: "Steal the butler's silver tray", who: "G", check: W => W.holds("G", "tray") || W.holds("H", "tray")},
+    {id: "picnic", text: "Sit on the picnic blanket while they tug it", who: "H", big: true, check: W => W.flag.picnicDunk},
+    {id: "binocs", text: "Hang the birdwatcher's binoculars in a tree", who: "G", keep: ["binocs"], check: W => W.inZ("binocs", "tree1") && W.o("binocs").high && !W.o("binocs").holder},
+    {id: "tub", text: "Fill the outdoor bathtub with mud", who: "H", check: W => W.flag.tubMud},
+    {id: "bells", text: "Ring every tent's service bell", who: "B", big: true, check: W => W.flag.bellChaos},
+    {id: "slippers", text: "Swap a guest's slippers for coconut shells", who: "G", keep: ["coco1", "coco2", "slippers"], check: W => ["coco1", "coco2"].some(c => W.inZ(c, "slipspot") && !W.o(c).holder) && !W.inZ("slippers", "slipspot") && !W.o("slippers").holder,
+      after: W => W.script("sg", [{go: [1085, 500]}, {face: -Math.PI / 2}, {say: "Slippers on… why are they so HARD?", t: 3, s: "gasp"}, {emote: "🥥", t: 3}])},
+    {id: "hammock", text: "Sit in the hammock until it snaps", who: "H", check: W => W.flag.hammockSnap},
+    {id: "tent", text: "Collapse the dining tent", who: "B", big: true, check: W => W.flag.tentDown},
+    {id: "sunset", text: "Get the sunset boat tour started early", who: "B", big: true, unlock: true, check: W => W.flag.riverOpen},
+  ],
+});
+
+/* ===== Area 6: The River ===== */
+const PHS = ["ph1", "ph2", "ph3"];
+const rvDone = W => Object.keys(W.done).filter(k => !W.A.pranks.find(p => p.id === k)?.unlock).length;
+area({
+  name: "The River", w: 1400, h: 1200, ground: "#A8CF6A", amb: "river", unlock: "hippo", unlockAt: 6, decor: "river",
+  start: {G: [90, 560], H: [90, 630]}, entrance: [90, 600], from: {4: {G: [90, 560], H: [90, 630]}},
+  exits: [{z: [0, 520, 40, 140], to: 4, label: "Savanna Camp"}, {z: [1240, 220, 160, 110], to: "jeep", need: "gotHippo", label: "the getaway jeep"}],
+  pen: {r: [100, 240, 150, 120], gate: "gate", drop: [66, 310], guard: [50, 310, 0], label: "reed pen"},
+  walls: [RC(92, 232, 166, 8), RC(250, 232, 8, 136), RC(92, 360, 166, 8), RC(92, 232, 8, 48), RC(92, 340, 8, 28)],
+  floors: [{r: [380, 600, 320, 100], c: "#B39B87"}, {r: [0, 560, 400, 80], c: "#E0C890"}, {r: [1040, 630, 220, 70], c: "#B39B87"}, {r: [700, 300, 80, 300], c: "#E0C890"}],
+  water: [[0, 700, 1400, 200, "river"]],
+  trees: [[60, 160, 34], [480, 200, 32], [880, 160, 36], [1180, 480, 30], [140, 1060, 34], [1250, 1050, 36], [420, 1120, 28], [980, 1100, 30]],
+  zones: {deckw: [380, 700, 340, 80], look: [100, 700, 220, 100], mapspot: [1150, 645, 60, 45], hframe: [540, 770, 320, 200], canoez: [270, 688, 110, 46], boatz: [1030, 770, 240, 60], cage: [100, 240, 150, 120]},
+  deco: [
+    {r: [380, 600, 320, 100], m: "jetty", rail: true}, {r: [880, 640, 70, 130], m: "jetty"}, {r: [1040, 630, 220, 70], m: "jetty"},
+    {r: [1040, 705, 220, 66], m: "riverboat", solid: true}, {r: [200, 330, 120, 70], m: "snackhut", solid: true},
+    {r: [280, 700, 90, 24], m: "canoe"}, {r: [1260, 250, 110, 60], m: "pjeep"},
+    {r: [110, 640, 200, 20], m: "hedge"},
+  ],
+  fix: [
+    {id: "straps", m: "straps", x: 480, y: 626, r: 12, label: "camera straps"},
+    {id: "bucket", m: "bucket", x: 915, y: 668, r: 10},
+    {id: "hippos", m: "hippofam", x: 700, y: 860, r: 44, solid: true, label: "hippo family"},
+    {id: "gate", m: "pengate", x: 92, y: 310, r: 18},
+  ],
+  objs: [
+    {id: "fish", m: "fish", x: 935, y: 672, own: "fisher", r: 8},
+    {id: "menu", m: "menu", x: 260, y: 410, high: true, hy: 30, r: 8, name: "lunch menu"},
+    {id: "rmap", m: "rmap", x: 1180, y: 664, high: true, hy: 30, r: 9, name: "river map"},
+    {id: "ghippo", m: "ghippo", x: 1215, y: 662, high: true, hy: 44, hidden: true, own: "capt", r: 10, name: "Golden Hippo"},
+    {id: "log", m: "log", x: 300, y: 850, heavy: true, r: 24},
+  ],
+  npcs: [
+    {id: "ph1", look: "ph1", x: 445, y: 652, beh: "post", face: Math.PI / 2, name: "Photographer", hints: [{p: "straps", t: "When a fish eagle shows up, none of us moves a muscle."}]},
+    {id: "ph2", look: "ph2", x: 520, y: 652, beh: "post", face: Math.PI / 2, name: "Photographer", hints: [{p: "splash", t: "These lenses cost more than my car. Keep the water AWAY."}]},
+    {id: "ph3", look: "ph3", x: 600, y: 652, beh: "post", face: Math.PI / 2, name: "Photographer", hints: [{p: "croc", t: "Crocs in this river? Ha! I'd love to see one. From a distance."}]},
+    {id: "fisher", look: "fisher", x: 915, y: 742, beh: "post", face: Math.PI / 2, name: "Fisherman", hints: [{p: "fish", t: "Eyes on the float, always. The bucket's right behind me."}]},
+    {id: "capt", look: "capt", x: 1100, y: 662, beh: "post", face: Math.PI / 2, staff: true, name: "Captain",
+      hints: [{p: "map", t: "I never sail without checking my river map. Right there on the dock."}, {p: "hippo", t: "Tonight the Golden Hippo goes on display. And nobody rocks my boat."}]},
+    {id: "snack", look: "cook", x: 260, y: 440, beh: "wander", rad: 40, staff: true, name: "Snack seller"},
+    {id: "nat", look: "nat", x: 700, y: 1010, beh: "post", face: -Math.PI / 2, name: "Naturalist", hints: [{p: "photo", t: "Every so often the hippo family poses beautifully. Nobody spoil it."}]},
+    {id: "tr1", look: "tr1", x: 160, y: 662, beh: "post", face: Math.PI / 2, hints: [{p: "hide", t: "Every few minutes we lean over and look for hippos. Never see a thing!"}]}, {id: "tr2", look: "tr2", x: 240, y: 662, beh: "post", face: Math.PI / 2},
+  ],
+  hooks: {
+    splash(W, x, y){ if(!W.flag.soakedPh && PHS.every(id => W.near([x, y], id, 230))){ W.set("soakedPh"); PHS.forEach((id, i) => W.script(id, [{say: ["MY LENS!", "Soaked! SOAKED!", "Was that a HIPPO?!"][i], s: "scream", t: 2.4}, {emote: "💦", t: 3}, {wait: 3}]));
+      W.fx("poof", 520, 720); } },
+    use(W, id, role){ const F = W.flag;
+      if(id === "straps" && role === "G" && !F.strapsTied){ if(F.focus){ F.strapsTied = 1; W.emit("say", {obj: "", s: "boing"}); } else W.say("ph1", "Oi! Hands off my camera strap!", 2.2, "hey"); } },
+    grab(W, id, role){
+      if(id === "rmap" && grFacing(W, "capt", W.P[role].x, W.P[role].y, 200)){ const o = W.o("rmap"); o.holder = ""; o.x = 1180; o.y = 664; o.high = true; W.say("capt", "That's my MAP, you lanky thief!", 2.4, "hey"); return; }
+      if(id === "ghippo" && !W.flag.rocking && W.npc("capt").st !== "chase" && W.near("capt", [1215, 662], 200)){ const o = W.o("ghippo"); o.holder = ""; o.x = 1215; o.y = 662; o.high = true; W.say("capt", "Hands OFF the Golden Hippo!", 2.4, "hey"); W.chase("capt", role); }
+    },
+    noise(W, role){ const F = W.flag;
+      if(role === "G" && !F.croc && W.inZ("log", "deckw") && W.near("G", [540, 650], 320)){ W.set("croc"); W.emit("say", {obj: "", s: "scream"});
+        [...PHS, "tr1", "tr2"].forEach((id, i) => W.script(id, [{say: ["CROCODILE!", "RUN!", "It's HUGE!", "Mummy!", "Not today, croc!"][i], s: "scream", t: 2.4}, {go: [300 + i * 90, 470], run: 1}, {emote: "😱", t: 3}, {wait: 4}, {go: W.npc(id).home}, {face: Math.PI / 2}])); }
+    },
+    tick(W, dt){ const F = W.flag, C = W.cnt, H = W.P.H;
+      // fish eagle: photographers freeze and focus
+      C.fcT = (C.fcT || 0) + dt; if(!F.focus && C.fcT > 18){ C.fcT = 0; F.focus = 1; W.say("ph2", "Fish eagle! Nobody. Move.", 2.6); PHS.forEach(id => W.emote(id, "📸", 6)); }
+      if(F.focus && C.fcT > 7){ C.fcT = 0; F.focus = 0; if(F.strapsTied && !F.strapsDone){ W.set("strapsDone"); W.emit("say", {obj: "", s: "crash"});
+          W.script("ph1", [{say: "Got it! Wait— OOF!", s: "scream", t: 2.4}, {emote: "😵", t: 3}, {wait: 3}]); W.script("ph2", [{say: "WHO TIED US TOGETHER?!", s: "hey", t: 2.6}, {emote: "😵", t: 3}, {wait: 3}]); } }
+      // tourists lean over the rail looking for hippos; Harriet can wait underneath
+      C.lnT = (C.lnT || 0) + dt; if(!F.leanIn && C.lnT > 16){ C.lnT = 0; F.leanIn = 1; W.say("tr1", "Can you see any hippos down there?", 2.6); } if(F.leanIn && C.lnT > 7){ C.lnT = 0; F.leanIn = 0; }
+      const hid = W.diving("H") && W.inZ("H", "look"); if(hid) C.hideT = (C.hideT || 0) + dt;
+      else { if((C.hideT || 0) > 2 && F.leanIn && !F.surprise && H && W.inZ("H", "look")){ W.set("surprise"); W.emit("say", {obj: "", s: "splash"}); W.script("tr1", [{say: "AAAH! A HIPPO!", s: "scream", t: 2.4}, {go: [170, 540], run: 1}, {wait: 3}, {go: [160, 662]}, {face: Math.PI / 2}]); W.script("tr2", [{say: "It came out of NOWHERE!", s: "scream", t: 2.4}, {go: [250, 540], run: 1}, {wait: 3}, {go: [240, 662]}, {face: Math.PI / 2}]); } C.hideT = 0; }
+      // canoe: one hippo too many
+      const inC = H && H.sit && W.inZ("H", "canoez"); F.canoeSag = inC && !F.canoeSunk ? 1 : 0; if(inC && !F.canoeSunk){ C.cnT = (C.cnT || 0) + dt; if(C.cnT > 3){ W.set("canoeSunk"); W.emit("say", {obj: "", s: "splash"}); W.fx("poof", 325, 712); } } else C.cnT = 0;
+      // naturalist photographs the hippo family
+      C.ntT = (C.ntT || 0) + dt; const nt = W.npc("nat");
+      if(C.ntT > 22 && nt.st === "post"){ C.ntT = 0; W.script("nat", [{say: "Hippo family… perfect… hold it…", t: 3}, {wait: 2.5}, {do: (W2) => { const inF = r => W2.inZ(r, "hframe"); W2.emit("snap", {obj: "nat"});
+          if(!W2.flag.hipPhoto && inF("G") && (inF("H") || W2.solo)){ W2.set("hipPhoto"); W2.say("nat", "Wait. FIVE hippos? And a… giraffe?", 3, "gasp"); } else W2.say("nat", "Gorgeous.", 1.6); }}]); }
+      // after six pranks the captain sets out the Golden Hippo for tonight's gala
+      if(!F.hippoOut && rvDone(W) >= (W.A.unlockAt || 0)){ F.hippoOut = 1; W.show("ghippo"); W.say("capt", "The Golden Hippo, polished for tonight's gala. Nobody touch it.", 3.5); }
+      // rocking the boat
+      const rock = H && W.inZ("H", "boatz") && (H.sit || H.c); if(rock && !F.rocking){ F.rocking = 1; F.tilt = 1; C.rkT = 0; W.emit("say", {obj: "", s: "splash"}); W.script("capt", [{say: "Whoa— WHOA! Who's rocking my boat?!", s: "scream", t: 2.4}, {emote: "😵", t: 4}, {wait: 4.5, spin: 1}, {go: [1100, 662]}, {face: Math.PI / 2}]); }
+      if(F.rocking){ C.rkT = (C.rkT || 0) + dt; if(C.rkT > 6){ F.rocking = 0; F.tilt = 0; } }
+      if(!F.gotHippo && (W.holds("G", "ghippo") || W.holds("H", "ghippo"))){ W.set("gotHippo"); W.say("capt", "THE GOLDEN HIPPO! STOP THEM!", 3, "scream"); }
+    },
+  },
+  pranks: [
+    {id: "fish", text: "Steal the fisherman's catch", who: "G", check: W => W.holds("G", "fish") || W.holds("H", "fish")},
+    {id: "splash", text: "Splash every photographer on the viewing deck", who: "H", big: true, check: W => W.flag.soakedPh},
+    {id: "hide", text: "Hide underwater, then surface when the tourists lean in", who: "H", check: W => W.flag.surprise},
+    {id: "straps", text: "Tie two photographers' camera straps together", who: "G", check: W => W.flag.strapsDone},
+    {id: "croc", text: "Fake a crocodile at the viewing deck", who: "B", big: true, check: W => W.flag.croc},
+    {id: "map", text: "Swap the captain's river map for a lunch menu", who: "G", keep: ["menu", "rmap"], check: W => W.inZ("menu", "mapspot") && !W.o("menu").holder && !W.inZ("rmap", "mapspot") && !W.o("rmap").holder},
+    {id: "canoe", text: "Sit in the canoe until it sinks", who: "H", check: W => W.flag.canoeSunk},
+    {id: "photo", text: "Photobomb the hippo family portrait", who: "B", check: W => W.flag.hipPhoto},
+    {id: "hippo", text: "Steal the Golden Hippo and make a run for the jeep", who: "B", big: true, unlock: true, check: W => W.flag.gotHippo},
+  ],
 });
 
 /* ===================== v2 world: data-driven pranks, scripted aftermaths, reactive people ===================== */
@@ -2346,7 +2629,7 @@ class World {
   noise(role){
     const a = this.P[role]; if(!a) return; this.emit("noise", {who: role, x: a.x, y: a.y});
     for(const n of this.npcs){ if(["sit", "busy", "script", "chase", "return", "photo"].includes(n.st)) continue; const d = Math.hypot(n.x - a.x, n.y - a.y);
-      if(d < 140 && this.sees(n, a) && (n.staff || n.grumpy)){ this.chase(n, role, "scene"); continue; }
+      if(d < 140 && !n.calm && this.sees(n, a) && (n.staff || n.grumpy)){ this.chase(n, role, "scene"); continue; }
       if(d < 300){ n.st = "investigate"; n.tgt = {x: a.x + rnd(40) - 20, y: a.y + rnd(40) - 20}; n.path = null; n.timer = 0; this.emote(n.id, "❓", 1.5); } }
     this.A.hooks?.noise?.(this.W, role);
   }
@@ -2556,7 +2839,7 @@ class World {
 /* ===== FINALE: THE JEEP ESCAPE =====
    Ginger (host phone) sees the road and works the gas. Harriet steers and brakes blind, with only a cracked rear-view mirror.
    Staff jeeps chase. Gates, crossing herds, mud and cliffs. Crash or get caught = restart the whole escape. ~3 minutes clean. */
-const JV = {L: 33000, maxV: 225, chaseV: 196, acc: 150, coast: 55, brake: 320, roadW: 160, cliffW: 118};
+const JV = {L: 11200, maxV: 225, chaseV: 196, acc: 150, coast: 55, brake: 320, roadW: 160, cliffW: 118};
 function jRand(seed){ let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 const JT = (() => { // the track: same on both phones
   const r = jRand(7741), cx = y => 200 * Math.sin(y / 1900) + 120 * Math.sin(y / 730 + 1.3) + 60 * Math.sin(y / 310 + .4);
@@ -2772,7 +3055,7 @@ function lobbyScreen(){
 }
 function wonScreen(){
   if(mountedKey === "won") return; mountedKey = "won"; stopPlay(); app.innerHTML = "";
-  const w = el(`<div class="home"><h1 class="logo small"><span>Lodge</span><span>Wrecked!</span></h1><div class="card center"><p class="big">🦒🦛</p>
+  const w = el(`<div class="home"><h1 class="logo small"><span>Lodge</span><span>Wrecked!</span></h1><div class="card center"><p class="big">🦒🏆🦛</p><p><b>The Golden Hippo is theirs.</b></p>
     <p>${R.wild ? "They made it out. Ginger and Harriet are back in the wild, and the lodge will never be the same." : "Every prank, every area. The safari lodge will never be the same."}</p>${galleryHTML()}
     ${S.pid === "p1" ? `<button class="btn" data-a="again">Play again from the start</button>` : `<p class="muted">Ginger can start a new run.</p>`}<button class="btn ghost" data-a="leave">Leave</button></div></div>`);
   app.append(w);
@@ -2793,7 +3076,7 @@ function playScreen(){
     <div class="hud"><button class="hb" data-a="menu">☰</button><div class="area"><b>${esc(A.name)}</b><span data-cnt></span></div><button class="hb list" data-a="list">📋 List</button></div>
     <div class="stage"><canvas></canvas><div class="toast"></div><div class="wait"></div></div>
     <div class="ctrl"><div class="joy"><div class="knob"></div></div>
-      <div class="btns"><button class="pad grab">GRAB</button><button class="pad noise">${role === "G" ? "SNORT" : "BELLOW"}</button><button class="pad spec">${role === "G" ? "STRETCH" : "CHARGE"}</button><button class="pad sit">SIT</button><button class="pad sneak">SNEAK</button><button class="pad run">RUN</button></div></div>
+      <div class="btns"><button class="pad grab">GRAB</button><button class="pad noise">${role === "G" ? "SNORT" : "BELLOW"}</button><button class="pad spec">${role === "G" ? "STRETCH" : "CHARGE"}</button><button class="pad sit">SIT</button><button class="pad sneak">${A.side ? "JUMP" : "SNEAK"}</button><button class="pad run">RUN</button></div></div>
     <div class="sheet hidden"></div></div>`);
   app.append(w);
   PLAY = new Play(w, role);
@@ -3209,6 +3492,9 @@ function animLife(m, a, t, dt, F, R3i){
     else op = d < .08 ? d / .08 : d < .55 ? 1 + Math.sin(d * 40) * .06 : d < .75 ? 1 - (d - .55) / .2 : 0; }
   if(m.kind === "H"){ if(op > 0) m.jaw.rotation.z = -op * (MA.k === "grab" ? .6 : 1.0); else if(!(L.yawn > 0)) m.jaw.rotation.z = 0; }
   else if(m.gjaw) m.gjaw.rotation.z = -op * (MA && MA.k === "grab" ? .55 : .8);
+  // jump (side-view train): own phone times it exactly, the partner's phone starts the hop when the flag arrives
+  let jd = 1e9; if(typeof a.jp === "number" && a.jp > 1) jd = performance.now() - a.jp; else if(a.jp){ m.jps = m.jps || performance.now(); jd = performance.now() - m.jps; } else m.jps = 0;
+  if(jd < 600) m.g.position.y += Math.sin(jd / 600 * Math.PI) * (m.kind === "G" ? 40 : 9);
   const under = !!(a.sit && a.w); if(m.under !== under){ m.under = under; const keep = m.kind === "G" ? m.neck : m.head; m.body.children.forEach(c => { if(c !== keep) c.visible = !under; }); }
   if(m.kind === "H" && under){ m.body.position.y += (-27 - m.body.position.y) * Math.min(1, dt * 6); }
   if(m.kind === "G" && under){ // ducking under: just the neck and head stay above the water, like a periscope
@@ -3245,7 +3531,7 @@ function batchStatic(S, roots){
 }
 
 /* ---- grass tufts and pebbles, instanced ---- */
-function addGrass(S, A){
+function addGrass(S, A){ if(A.noGrass) return;
   const blade = new THREE.ConeGeometry(1.4, 9, 4); blade.translate(0, 4.5, 0);
   const tuft = new THREE.BufferGeometry(); { const parts = [[0, 0, 0, 0], [2.2, 0, 1, .4], [-1.8, 0, 1.6, -.4], [.6, 0, -2, .2]].map(([x, y, z, r]) => { const b = blade.clone(); b.rotateZ(r); b.translate(x, 0, z); return b.toNonIndexed(); });
     const n = parts.reduce((s, b) => s + b.attributes.position.count, 0), p = new Float32Array(n * 3), nn = new Float32Array(n * 3); let o = 0; for(const b of parts){ b.computeVertexNormals(); p.set(b.attributes.position.array, o * 3); nn.set(b.attributes.normal.array, o * 3); o += b.attributes.position.count; }
@@ -3561,6 +3847,191 @@ DECOR.grounds = (S, A) => { const root = new THREE.Group(); S.add(root);
   const sign = new THREE.Group(); sign.add(P3(CY(2, 2, 40, "#8D6E63", 6), 0, 20, 0)); const l1 = label3("⛳ GOLF", 34, 8, "#FFFFFF", "#2E7D32"); l1.position.set(14, 38, 0); sign.add(l1); const l2 = label3("💒 WEDDING", 40, 8, "#FFFFFF", "#AD1457"); l2.position.set(-14, 28, 0); sign.add(l2); sign.position.set(740, 0, 980); root.add(sign);
   return {batch: [root]}; };
 
+/* ---- The Train (side view): looks, carriages, props ---- */
+Object.assign(LOOK3, {
+  driver: {shirt: "#455A64", pants: "#263238", skin: "#C68642", hair: "#212121", style: "short", h: 1.04, hat: "cap", capc: "#37474F", apron: "#5D4037"},
+  insp: {shirt: "#1A237E", pants: "#1A237E", skin: "#FFDBAC", hair: "#BDBDBD", style: "short", h: 1.02, hat: "cap", capc: "#0D1449", trim: "#FFD54F", badge: true, glasses: true},
+  leaner: {shirt: "#FFB74D", pants: "#5D4037", skin: "#E0AC69", hair: "#6D4C41", style: "curly", h: 1.0},
+  pass1: {shirt: "#90CAF9", pants: "#37474F", skin: "#8D5524", hair: "#212121", style: "afro", h: .98}, pass2: {shirt: "#CE93D8", pants: "#CE93D8", skin: "#FFDBAC", hair: "#FFB300", style: "bun", h: .95, dress: "#CE93D8"},
+});
+
+const TW = "#7B4A2A", TW2 = "#A0673E";
+Object.assign(DECO3, {
+  twall(d, w){ const g = new THREE.Group(), H = 96, scen = new THREE.Group(); // far wall of a carriage with windows onto the moving savanna
+    const wins = d.wins || 4, ww = 84, gap = (w - wins * ww) / (wins + 1);
+    g.add(P3(B3(w, 26, 6, TW), 0, 13, 0)); g.add(P3(B3(w, 22, 6, TW), 0, H - 11, 0)); g.add(P3(B3(w, 3, 8, "#D7A86E"), 0, 27, 3)); g.add(P3(B3(w, 3, 8, "#D7A86E"), 0, H - 22, 3));
+    for(let k = 0; k <= wins; k++) g.add(P3(B3(gap, H - 48, 6, TW2), -w / 2 + gap / 2 + k * (gap + ww), 50, 0));
+    for(let k = 0; k < wins; k++){ const x = -w / 2 + gap + ww / 2 + k * (gap + ww); g.add(P3(B3(ww, 2, 7, "#5D4037"), x, 27, 2)); for(const s of [-1, 1]) g.add(P3(B3(4, 46, 7, "#D7A86E"), x + s * ww / 2, 50, 2)); }
+    g.add(P3(B3(w, 4, 8, "#5D4037"), 0, H + 2, 0));
+    const strip = new THREE.Group(); scen.add(strip); scen.position.z = -40; g.add(scen);
+    const sky = P3(B3(w + 40, 90, 1, "#9ED8F0"), 0, 52, -70); scen.add(sky);
+    const L = w + 400; for(let k = 0; k < 9; k++){ const x = -L / 2 + k * (L / 9), t = new THREE.Group(); t.add(P3(CY(1.6, 2.4, 30, "#6D4C41", 6), 0, 34, 0)); t.add(P3(SC3(SM(16, "#7CB342", 10, 6), 1.4, .3, 1), 0, 50, 0)); t.position.set(x, 0, -30 - (k % 3) * 12); strip.add(t);
+      strip.add(P3(SC3(SM(40, k % 2 ? "#C5B26E" : "#B8A55E", 10, 6), 1.6, .45, .4), x + 30, 24, -55)); }
+    const camp = new THREE.Group(); camp.visible = false; scen.add(camp); for(let k = 0; k < 3; k++){ const c = new THREE.Mesh(new THREE.ConeGeometry(18, 26, 4), m3(["#FFF3E0", "#FFE0B2", "#FFF8E1"][k])); c.position.set(-120 + k * 120, 40, -34); camp.add(c); }
+    const dark = P3(B3(w + 40, 100, 1, "#0B0B12"), 0, 50, -8); dark.visible = false; scen.add(dark);
+    g.userData.anim = (t, F) => { const go = !F.atCamp && !F.braking; if(go) strip.position.x = ((strip.position.x - (F.dark ? 0 : 1.6) * 3) % (L / 9)); dark.visible = !!F.dark; camp.visible = !!F.atCamp; strip.visible = !F.atCamp; sky.visible = !F.dark; }; return g; },
+  tpart(d){ const g = new THREE.Group(); // partition between carriages with an open doorway
+    g.add(P3(B3(8, 96, 54, TW), 0, 48, -72)); g.add(P3(B3(8, 26, 98, TW), 0, 83, 3)); g.add(P3(B3(9, 4, 98, "#D7A86E"), 0, 70, 3));
+    const l = label3(d.label || "", 34, 7, "#FFF8E1", "#5D4037"); l.position.set(5, 88, 3); l.rotation.y = Math.PI / 2; g.add(l); return g; },
+  lrack(d, w){ const g = G3(P3(B3(w, 3, 22, "#8D6E63"), 0, 64, 0)); for(let k = 0; k <= w; k += 40) g.add(P3(CY(.8, .8, 30, "#B0BEC5", 6), -w / 2 + k, 79, -9));
+    for(let k = 0; k < 4; k++) g.add(P3(B3(30, 14 + (k % 2) * 6, 18, ["#795548", "#3949AB", "#C62828", "#2E7D32"][k]), -w / 2 + 26 + k * 46, 72, 0)); return g; },
+  tseat(d, w){ const c = d.c || "#8E3B46"; return G3(P3(B3(w, 14, 26, c), 0, 7, 0), P3(B3(w, 30, 6, c), 0, 22, -11), P3(B3(w, 3, 20, "#B85C69"), 0, 15, 2)); },
+  bunk(d, w){ const g = G3(P3(B3(w, 18, 40, "#6D4C41"), 0, 9, 0), P3(B3(w - 6, 6, 36, "#ECEFF1"), 0, 21, 0), P3(B3(w, 4, 40, "#5D4037"), 0, 70, 0), P3(B3(w - 6, 5, 36, "#E3F2FD"), 0, 75, 0));
+    for(const s of [-1, 1]) g.add(P3(B3(4, 80, 4, "#5D4037"), s * (w / 2 - 2), 40, 18)); g.add(P3(B3(w - 30, 4, 34, "#9FA8DA"), 10, 25, 1)); return g; },
+  controls(d, w){ const g = G3(P3(B3(w, 46, 30, "#37474F"), 0, 23, 0), P3(B3(w, 6, 34, "#263238"), 0, 49, 0)); for(let k = 0; k < 4; k++){ g.add(P3(CY(6, 6, 2, "#ECEFF1", 16).rotateX(Math.PI / 2), -w / 2 + 24 + k * 34, 36, 16)); g.add(P3(B3(1, 5, 1, "#E53935"), -w / 2 + 24 + k * 34, 37, 17.5)); }
+    g.add(P3(B3(40, 30, 30, "#212121"), w / 2 - 30, 15, 0)); const fire = P3(B3(26, 14, 1, "#FF6F00", {emissive: "#FF3D00"}), w / 2 - 30, 14, 15.6); g.add(fire); g.userData.anim = t => { fire.scale.y = .8 + Math.sin(t * 9) * .2; }; return g; },
+});
+
+Object.assign(FIXT, {
+  tlamp(f){ const g = new THREE.Group(); g.add(P3(B3(8, 10, 4, "#455A64"), 0, 80, 0)); const bulb = P3(SM(4, "#FFF59D", 10, 8, {emissive: "#FFC107"}), 0, 76, 4); g.add(bulb);
+    const glow = new THREE.PointLight("#FFE082", 0, 260, 2); glow.position.set(0, 74, 30); g.add(glow);
+    g.userData.anim = (t, F) => { glow.intensity = F.dark && !F.lampBlocked ? 1.6 : 0; bulb.visible = !F.lampBlocked || !F.dark; }; return g; },
+  glasses(f){ const g = new THREE.Group(), gl = []; for(let k = 0; k < 4; k++){ const c = G3(P3(CY(2.2, 1.6, 7, "#E1F5FE", 8, {transparent: true, opacity: .7}), 0, 3.5, 0), P3(CY(1.9, 1.9, 4, ["#FF7043", "#AB47BC", "#FFCA28", "#66BB6A"][k], 8), 0, 2.5, 0)); c.position.set(-12 + k * 8, 30, (k % 2) * 6 - 3); g.add(c); gl.push(c); }
+    g.userData.anim = (t, F) => gl.forEach((c, k) => { if(F.drinksSlid){ c.position.z += (24 + k * 3 - c.position.z) * .05; c.position.y += ((c.position.z > 14 ? 1 : 30) - c.position.y) * .1; c.rotation.x = c.position.z > 14 ? 1.5 : 0; } else if(F.curve){ c.position.z = (k % 2) * 6 - 3 + Math.sin(t * 3 + k) * 2; } }); return g; },
+  cord(f){ const g = G3(P3(CY(.6, .6, 40, "#E53935", 6), 0, 72, 0), P3(SM(2.6, "#B71C1C", 8, 6), 0, 52, 0), P3(B3(30, 6, 3, "#FFEB3B"), 0, 94, 0)); const l = label3("EMERGENCY", 28, 5, "#B71C1C", "#FFEB3B"); l.position.set(0, 94, 2); g.add(l);
+    g.userData.anim = (t, F) => { g.children[1].position.y = F.braking || F.atCamp ? 44 : 52; }; return g; },
+  lever(f){ const g = G3(P3(B3(14, 10, 14, "#455A64"), 0, 5, 0)); const arm = new THREE.Group(); arm.position.y = 10; g.add(arm); arm.add(P3(CY(1.4, 1.4, 34, "#B0BEC5", 8), 0, 17, 0)); arm.add(P3(SM(3.4, "#E53935", 10, 8), 0, 34, 0));
+    const l = label3("BRAKE", 20, 5, "#FFFFFF", "#B71C1C"); l.position.set(0, 13, 7.5); g.add(l); g.userData.anim = (t, F) => { arm.rotation.z += ((F.onLever ? -.8 : .3) - arm.rotation.z) * .15; }; return g; },
+});
+
+Object.assign(PROPS, {
+  scarf(){ const g = new THREE.Group(); const r = new THREE.Mesh(new THREE.TorusGeometry(5.5, 2, 8, 18), m3("#E53935")); r.rotation.x = Math.PI / 2; r.position.y = 2; g.add(r); for(let k = 0; k < 3; k++) g.add(P3(B3(3, 8, 2, k % 2 ? "#FFFFFF" : "#E53935"), 5, -2 - k * 3, 2)); return g; },
+  lunch(){ return G3(P3(B3(14, 9, 9, "#1565C0"), 0, 4.5, 0), P3(B3(14, 2, 9, "#0D47A1"), 0, 9.5, 0), P3(B3(6, 2, 2, "#FFD54F"), 0, 11, 0)); },
+  pillow(){ return G3(P3(SC3(SM(8, "#FFF59D", 12, 8), 1.3, .45, .9), 0, 4, 0)); },
+  punch(){ return G3(P3(B3(10, 3, 3, "#78909C"), 0, 3, 0), P3(B3(10, 3, 3, "#90A4AE"), 0, 6.5, 0).rotateZ(.25), P3(CY(1.6, 1.6, 4, "#455A64", 8), 4, 4.5, 0)); },
+  cakeslice(){ const g = G3(P3(CY(7, 7, 1, "#FFFFFF", 16), 0, .5, 0)); const c = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 6, 12, 1, false, 0, 1.3), m3("#F8BBD0")); c.position.y = 4; g.add(c); g.add(P3(SM(1.2, "#E53935", 8, 6), 1.5, 7.6, 2)); return g; },
+  jelly(){ return G3(P3(CY(7, 7, 1, "#FFFFFF", 16), 0, .5, 0), P3(CY(4, 5.4, 7, "#66BB6A", 14, {transparent: true, opacity: .85}), 0, 4.5, 0), P3(SM(1.4, "#FFFFFF", 8, 6), 0, 8.6, 0)); },
+});
+
+DECOR.train = (S, A) => { const root = new THREE.Group(); S.add(root); // floorboards, ceiling lamps and the carriage roofs' edge
+  for(let x = 10; x < AW; x += 24) root.add(P3(B3(2, .6, 150, "#4E342E"), x, .5, 140));
+  for(let x = 0; x < AW; x += 700) root.add(P3(B3(700, 1, 6, "#D7A86E"), x + 350, .7, 214));
+  for(let x = 0; x < AW; x += 700){ root.add(P3(B3(694, 22, 4, "#7B1F1F"), x + 350, -10, 222)); root.add(P3(B3(694, 3, 5, "#FFD54F"), x + 350, -1, 223)); for(const wx of [90, 190, 510, 610]) root.add(P3(CY(16, 16, 6, "#263238", 16).rotateX(Math.PI / 2), x + wx, -18, 226)); }
+  root.add(P3(B3(AW + 400, 2, 160, "#8D7B68"), AW / 2, -30, 300)); for(const z of [236, 262]) root.add(P3(B3(AW + 400, 3, 3, "#B0BEC5"), AW / 2, -26, z)); for(let x = -200; x < AW + 200; x += 26) root.add(P3(B3(8, 2, 44, "#5D4037"), x, -28.5, 249));
+  root.add(P3(B3(AW + 2000, 1, 1400, "#C5B26E"), AW / 2, -32, 1000));
+  return {batch: [root]}; };
+
+/* ---- Savanna Camp: looks, tents, props ---- */
+Object.assign(LOOK3, {
+  butler: {shirt: "#212121", pants: "#212121", skin: "#C68642", hair: "#BDBDBD", style: "short", h: 1.05, tie: "#FFFFFF", collar: "#FFFFFF", bowtie: "#212121", vest: "#FFFFFF"},
+  guide2: {shirt: "#C5B07A", pants: "#8D7A55", skin: "#8D5524", hair: "#212121", style: "short", h: 1.03, hat: "ranger", badge: true},
+  birder: {shirt: "#A5D6A7", pants: "#8D6E63", skin: "#FFDBAC", hair: "#ECEFF1", style: "short", h: .98, hat: "ranger", vest: "#8D7A55", glasses: true},
+  pk1: {shirt: "#FF8A65", pants: "#37474F", skin: "#E0AC69", hair: "#3E2723", style: "curly", h: 1.0}, pk2: {shirt: "#4DD0E1", pants: "#4DD0E1", skin: "#FFDBAC", hair: "#D84315", style: "long", h: .96, dress: "#4DD0E1", hat: "sun"},
+  sg: {shirt: "#EDE7F6", pants: "#EDE7F6", skin: "#C68642", hair: "#6D4C41", style: "bun", h: .97, robe: true}, tubguest: {shirt: "#FFFFFF", pants: "#90A4AE", skin: "#F1C27D", hair: "#FFB300", style: "ponytail", h: .98},
+  dn1: {shirt: "#9575CD", pants: "#311B92", skin: "#8D5524", hair: "#212121", style: "afro", h: 1.0}, dn2: {shirt: "#F06292", pants: "#F06292", skin: "#FFDBAC", hair: "#5D4037", style: "bun", h: .95, dress: "#F06292"},
+});
+
+Object.assign(DECO3, {
+  luxtent(d, w, dp){ const g = new THREE.Group(), C = "#F3E5C8", C2 = "#E6D3AE";
+    g.add(P3(B3(w + 20, 3, dp + 20, "#A1887F"), 0, 1.5, 0)); const body = new THREE.Mesh(new THREE.CylinderGeometry(w * .2, w * .55, 50, 6), m3(C)); body.position.y = 28; g.add(body);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(w * .62, 34, 6), m3(C2)); roof.position.y = 68; g.add(roof); g.add(P3(CY(1, 1, 16, "#5D4037", 6), 0, 92, 0)); g.add(P3(B3(2, 10, 14, "#E53935"), 6, 96, 0));
+    const door = P3(B3(22, 34, 2, "#5D4037"), 0, 18, w * .5); g.add(door); for(const s of [-1, 1]){ const fl = P3(B3(13, 36, 1.6, C2), s * 12, 20, w * .52); fl.rotation.y = s * .5; g.add(fl); }
+    for(let k = 0; k < 6; k++){ const a = k / 6 * Math.PI * 2; g.add(P3(CY(.5, .5, 30, "#BCAAA4", 4).rotateZ(.9 * Math.cos(a)).rotateX(.9 * Math.sin(a)), Math.cos(a) * w * .7, 10, Math.sin(a) * w * .7)); }
+    const l = label3(d.label || "", 24, 6, "#5D4037", "#FFF8E1"); l.position.set(0, 46, w * .48); g.add(l); return g; },
+  dtent(d, w, dp){ const g = new THREE.Group(), top = new THREE.Group(); g.add(top); // open-sided dining marquee that collapses
+    const poles = []; for(const [x, z] of [[-w / 2, -dp / 2], [w / 2, -dp / 2], [-w / 2, dp / 2], [w / 2, dp / 2]]){ const p = P3(CY(1.6, 1.6, 64, "#8D6E63", 8), x, 32, z); g.add(p); poles.push(p); }
+    const cl = P3(CY(2, 2, 84, "#8D6E63", 8), 0, 42, 0); g.add(cl);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.hypot(w, dp) * .5, 22, 4), m3("#FFFFFF", {transparent: true, opacity: .45})); roof.rotation.y = Math.PI / 4; roof.position.y = 76; roof.scale.set(w / Math.hypot(w, dp) * 1.42, 1, dp / Math.hypot(w, dp) * 1.42); top.add(roof);
+    for(let k = 0; k < 16; k++){ const a = k / 16 * Math.PI * 2; top.add(P3(SC3(SM(4, k % 2 ? "#E53935" : "#FFFFFF", 6, 4), 1, .6, 1), Math.cos(a) * w * .55, 64, Math.sin(a) * dp * .55)); }
+    g.add(P3(B3(w * .6, 3, dp * .35, "#FFFFFF"), 0, 28, 0)); g.add(P3(B3(w * .58, 26, 3, "#ECEFF1"), 0, 14, 0)); for(let k = 0; k < 6; k++) g.add(P3(CY(3, 2, 5, ["#FFCC80", "#EF9A9A", "#A5D6A7"][k % 3], 8), -w * .24 + k * w * .1, 32, (k % 2 ? 1 : -1) * 6));
+    g.userData.anim = (t, F) => { const down = F.tentDown ? 1 : 0; top.position.y += ((down ? -50 : 0) - top.position.y) * .12; top.rotation.z += ((down ? .25 : 0) - top.rotation.z) * .1;
+      poles.forEach((p, k) => { p.rotation.z += ((down ? (k % 2 ? 1.3 : -1.3) : 0) - p.rotation.z) * .1; }); cl.rotation.x += ((down ? 1.4 : 0) - cl.rotation.x) * .1; }; return g; },
+  blanket(d, w, dp){ const g = new THREE.Group(), spread = new THREE.Group(); g.add(spread);
+    const bl = new THREE.Group(); g.add(bl); for(let i = 0; i < 6; i++) for(let j = 0; j < 4; j++) bl.add(P3(B3(w / 6, .8, dp / 4, (i + j) % 2 ? "#E53935" : "#FFFFFF"), -w / 2 + w / 12 + i * w / 6, .6, -dp / 2 + dp / 8 + j * dp / 4));
+    spread.add(P3(B3(20, 14, 14, "#A1887F"), -w * .3, 7, 0)); spread.add(P3(B3(22, 2, 14, "#8D6E63"), -w * .3, 15, 0)); for(let k = 0; k < 4; k++){ spread.add(P3(CY(6, 6, 1, "#FFFFFF", 14), -6 + k * 12, 1.6, (k % 2 ? 1 : -1) * 10)); spread.add(P3(SM(3, ["#FFCA28", "#EF5350", "#66BB6A", "#AB47BC"][k], 8, 6), -6 + k * 12, 3.4, (k % 2 ? 1 : -1) * 10)); }
+    spread.add(P3(CY(3, 3, 12, "#558B2F", 8), w * .32, 6, -8));
+    g.userData.anim = (t, F) => { if(F.picnicDunk){ spread.position.z += (110 - spread.position.z) * .05; spread.position.y += ((spread.position.z > 80 ? -6 : 0) - spread.position.y) * .1; bl.position.z += (40 - bl.position.z) * .05; spread.rotation.y += .02; } else if(F.tugging) bl.position.z = Math.sin(t * 10) * 2; }; return g; },
+  tub(d, w){ const g = new THREE.Group(); g.add(P3(SC3(SM(16, "#FFFFFF", 18, 10), 1.6, .55, .9), 0, 14, 0)); for(const [x, z] of [[-16, -8], [16, -8], [-16, 8], [16, 8]]) g.add(P3(SM(2.4, "#FFD54F", 8, 6), x, 3, z));
+    const fill = P3(SC3(CY(14, 14, 1, "#81D4FA", 16, {transparent: true, opacity: .85}), 1.6, 1, .85), 0, 21, 0); g.add(fill); g.add(P3(CY(1, 1, 22, "#B0BEC5", 6), -24, 22, 0));
+    g.userData.anim = (t, F) => { fill.material = m3(F.tubMud ? "#6B4423" : "#81D4FA", F.tubMud ? undefined : {transparent: true, opacity: .85}); }; return g; },
+  rgate(d, w){ const g = new THREE.Group(), leaf = new THREE.Group(); leaf.position.x = -w / 2; g.add(leaf); for(let k = 0; k < 6; k++) leaf.add(P3(B3(3, 44, 4, "#A1887F"), 6 + k * (w - 12) / 5, 22, 0));
+    for(const y of [10, 36]) leaf.add(P3(B3(w - 4, 4, 3, "#8D6E63"), w / 2, y, 0)); g.userData.anim = (t, F) => { leaf.rotation.y += ((F.riverOpen ? -1.7 : 0) - leaf.rotation.y) * .06; }; return g; },
+  hammock(d, w){ const g = new THREE.Group(), net = new THREE.Group(); g.add(net); for(const s of [-1, 1]) g.add(P3(CY(4, 5, 70, "#6D4C41", 8), s * w / 2, 35, 0));
+    for(let k = 0; k < 9; k++){ const x = -w / 2 + 10 + k * (w - 20) / 8, y = 30 - Math.sin(k / 8 * Math.PI) * 10; net.add(P3(B3((w - 20) / 8 + 1, 1.4, 22, k % 2 ? "#FF8A65" : "#FFE0B2"), x, y, 0)); }
+    for(const s of [-1, 1]) net.add(P3(CY(.5, .5, 14, "#BCAAA4", 4).rotateZ(s * 1.2), s * (w / 2 - 5), 36, 0));
+    g.userData.anim = (t, F) => { if(F.hammockSnap){ net.position.y += (-26 - net.position.y) * .15; net.rotation.z += (.3 - net.rotation.z) * .1; } else net.position.y = F.hamSag ? -8 + Math.sin(t * 20) * .8 : 0; }; return g; },
+});
+
+Object.assign(FIXT, {
+  sbell(f){ const g = G3(P3(CY(1.2, 1.2, 30, "#5D4037", 6), 0, 15, 0), P3(B3(10, 1.5, 10, "#6D4C41"), 0, 30, 0), P3(SC3(SM(4, "#FFD54F", 12, 8), 1, .7, 1), 0, 33, 0), P3(SM(1, "#FFB300", 6, 4), 0, 36, 0));
+    g.userData.anim = (t, F, n) => { g.children[2].rotation.z = (n || 0) && Math.sin(t * 30) * .1; }; return g; },
+  stake(f){ const g = G3(P3(CY(1.6, .6, 16, "#8D6E63", 6), 0, 6, 0).rotateZ(-.3), P3(CY(.4, .4, 70, "#BCAAA4", 4), -12, 34, 0).rotateZ(-.6)); g.userData.anim = (t, F) => { g.visible = !F.stakeOut; }; return g; },
+  topline(f){ const g = G3(P3(SM(2.2, "#E53935", 8, 6), 0, 66, 0), P3(CY(.4, .4, 18, "#BCAAA4", 4), 0, 57, 0)); g.userData.anim = (t, F) => { g.children[0].position.y = F.lineOut ? 50 : 66; }; return g; },
+  tclock(f){ const g = G3(P3(B3(6, 70, 6, "#5D4037"), 0, 35, 0), P3(CY(14, 14, 3, "#FFF8E1", 20).rotateX(Math.PI / 2), 0, 74, 3), P3(CY(15, 15, 2, "#5D4037", 20).rotateX(Math.PI / 2), 0, 74, 2));
+    const hh = new THREE.Group(); hh.position.set(0, 74, 5); g.add(hh); hh.add(P3(B3(1.6, 8, 1, "#212121"), 0, 4, 0)); const mh = new THREE.Group(); mh.position.set(0, 74, 5.5); g.add(mh); mh.add(P3(B3(1, 11, 1, "#212121"), 0, 5.5, 0));
+    for(let k = 0; k < 12; k++){ const a = k / 12 * Math.PI * 2; g.add(P3(B3(1, 2, 1, "#5D4037"), Math.sin(a) * 11, 74 + Math.cos(a) * 11, 5)); }
+    const l = label3("TOUR AT SUNSET (6)", 40, 7, "#FFFFFF", "#E65100"); l.position.set(0, 96, 3); g.add(l);
+    g.userData.anim = (t, F, n) => { const hr = (2 + (n || 0)) % 12; hh.rotation.z = -hr / 12 * Math.PI * 2; mh.rotation.z = 0; }; return g; },
+  tbell(f){ const g = G3(P3(CY(2, 2, 60, "#5D4037", 6), -14, 30, 0), P3(CY(2, 2, 60, "#5D4037", 6), 14, 30, 0), P3(B3(34, 4, 4, "#5D4037"), 0, 60, 0));
+    const b = new THREE.Group(); b.position.y = 58; g.add(b); b.add(P3(new THREE.Mesh(new THREE.CylinderGeometry(4, 8, 12, 14, 1, true), m3("#FFC107", {side: THREE.DoubleSide})), 0, -6, 0)); b.add(P3(SM(1.6, "#FF8F00", 8, 6), 0, -12, 0));
+    g.userData.anim = (t, F) => { b.rotation.z = F.tourBell ? Math.sin(t * 14) * .5 : 0; }; return g; },
+});
+
+Object.assign(PROPS, {
+  tray(){ const g = G3(P3(CY(9, 9, 1, "#CFD8DC", 20), 0, 1, 0), P3(CY(9.4, 9.4, .6, "#ECEFF1", 20), 0, 1.6, 0)); g.add(P3(SC3(SM(5, "#B0BEC5", 14, 8, {}), 1, .7, 1), 0, 4, 0)); return g; },
+  binocs(){ const g = new THREE.Group(); for(const s of [-1, 1]){ g.add(P3(CY(2, 2, 8, "#263238", 10).rotateZ(Math.PI / 2), 0, 3, s * 2.4)); g.add(P3(CY(2.2, 2.2, 1, "#4FC3F7", 10).rotateZ(Math.PI / 2), 4.4, 3, s * 2.4)); } g.add(P3(B3(3, 1.5, 3, "#37474F"), 0, 3, 0)); return g; },
+  slippers(){ const g = new THREE.Group(); for(const s of [-1, 1]){ g.add(P3(SC3(SM(3, "#FFFFFF", 10, 6), 1.8, .5, 1), 0, 1.4, s * 3.4)); g.add(P3(SC3(SM(2.4, "#F8BBD0", 8, 6), 1, .6, 1.1), 2, 2.4, s * 3.4)); } return g; },
+  coconut(){ return G3(P3(SC3(SM(4.2, "#6D4C41", 12, 8), 1.1, .95, 1), 0, 4, 0), P3(SM(.6, "#3E2723", 6, 4), 4.4, 5, 0)); },
+});
+
+DECOR.camp = (S, A) => { const root = new THREE.Group(); S.add(root);
+  for(const z of [86, 116]) root.add(P3(B3(AW, 2.4, 3, "#90A4AE"), AW / 2, 3, z)); for(let x = 6; x < AW; x += 22) root.add(P3(B3(8, 1.6, 44, "#6D4C41"), x, 1, 101));
+  root.add(P3(B3(AW, 1, 60, "#BCAAA4"), AW / 2, .4, 101)); root.add(P3(B3(360, 8, 60, "#D7CCC8"), 700, 4, 176));
+  const sign = label3("SAVANNA CAMP", 70, 12, "#FFFFFF", "#6D4C41"); sign.position.set(700, 40, 206); root.add(sign); root.add(P3(B3(4, 34, 4, "#5D4037"), 666, 17, 205)); root.add(P3(B3(4, 34, 4, "#5D4037"), 734, 17, 205));
+  for(let k = 0; k < 18; k++){ const a = hsh3(k * 4.1) * 6.28, r = 40 + hsh3(k) * 40; root.add(P3(SC3(SM(6, "#9E9E9E", 8, 6), 1, .5, 1), 700 + Math.cos(a) * r, 2, 820 + Math.sin(a) * r * .5)); }
+  const fire = new THREE.Group(); for(let k = 0; k < 5; k++){ const l = P3(CY(1.6, 1.6, 26, "#5D4037", 6), 0, 3, 0); l.rotation.set(Math.PI / 2, k / 5 * Math.PI, 0); fire.add(l); } fire.position.set(700, 0, 820); root.add(fire);
+  for(let x = 1290; x <= 1340; x += 50) for(const y of [560, 680]){ root.add(P3(CY(3, 3, 60, "#8D6E63", 8), x, 30, y)); }
+  const gs = label3("🚤 RIVER TOURS", 50, 9, "#FFFFFF", "#0277BD"); gs.position.set(1320, 70, 620); gs.rotation.y = -Math.PI / 2; root.add(gs);
+  return {batch: [root]}; };
+
+/* ---- The River: looks, props, the hippo family, the getaway jeep ---- */
+Object.assign(LOOK3, {
+  ph1: {shirt: "#8D6E63", pants: "#3E2723", skin: "#FFDBAC", hair: "#212121", style: "short", h: 1.0, camera: true, vest: "#827717", hat: "ranger"},
+  ph2: {shirt: "#90A4AE", pants: "#455A64", skin: "#8D5524", hair: "#3E2723", style: "ponytail", h: .97, camera: true, vest: "#5D4037"},
+  ph3: {shirt: "#FFCC80", pants: "#5D4037", skin: "#E0AC69", hair: "#FFB300", style: "curly", h: 1.02, camera: true, hat: "sun"},
+  nat: {shirt: "#558B2F", pants: "#33691E", skin: "#C68642", hair: "#ECEFF1", style: "short", h: 1.0, camera: true, hat: "ranger", glasses: true},
+  tr1: {shirt: "#F06292", pants: "#1A237E", skin: "#FFDBAC", hair: "#6D4C41", style: "bun", h: .96}, tr2: {shirt: "#4FC3F7", pants: "#37474F", skin: "#8D5524", hair: "#212121", style: "spiky", h: 1.03, shades: true},
+});
+
+Object.assign(DECO3, {
+  jetty(d, w, dp){ const g = new THREE.Group(); for(let k = 0; k < Math.floor(w / 10); k++) g.add(P3(B3(9, 3, dp, k % 2 ? "#A1887F" : "#B39B87"), -w / 2 + 5 + k * 10, 6, 0));
+    for(const z of [-dp / 2 + 3, dp / 2 - 3]) for(let x = -w / 2 + 6; x < w / 2; x += 40) g.add(P3(CY(2.6, 2.6, 22, "#6D4C41", 6), x, 0, z));
+    if(d.rail) for(let x = -w / 2 + 6; x <= w / 2; x += 20){ g.add(P3(B3(2, 22, 2, "#795548"), x, 18, dp / 2 - 2)); } if(d.rail) g.add(P3(B3(w, 2.4, 3, "#795548"), 0, 28, dp / 2 - 2)); return g; },
+  snackhut(d, w, dp){ const g = G3(P3(B3(w, 44, dp, "#FFE0B2"), 0, 22, 0), P3(B3(w + 16, 4, dp + 16, "#00897B"), 0, 47, 0), P3(B3(w, 6, 12, "#FFFFFF"), 0, 30, dp / 2 + 6));
+    const l = label3("SNACKS", 40, 9, "#FFFFFF", "#00897B"); l.position.set(0, 56, dp / 2 + 8); g.add(l); return g; },
+  canoe(d, w){ const g = new THREE.Group(), c = new THREE.Group(); g.add(c); c.add(P3(SC3(SM(w / 2, "#D84315", 16, 8), 1, .28, .26), 0, 4, 0)); c.add(P3(SC3(SM(w / 2 - 3, "#5D4037", 14, 6), 1, .2, .2), 0, 7, 0));
+    c.add(P3(B3(3, 1, 30, "#8D6E63"), w * .2, 8, 0).rotateY(.3));
+    g.userData.anim = (t, F) => { if(F.canoeSunk){ c.position.y += (-12 - c.position.y) * .05; c.rotation.z += (.4 - c.rotation.z) * .05; } else c.position.y = F.canoeSag ? -3 + Math.sin(t * 8) : Math.sin(t * 1.5) * .6; }; return g; },
+  pjeep(d, w){ const g = new THREE.Group(), C = "#7CB342"; g.add(P3(B3(w, 18, 40, C), 0, 20, 0)); g.add(P3(B3(w * .5, 14, 38, "#689F38"), -w * .1, 36, 0)); g.add(P3(B3(2, 14, 34, "#B3E5FC"), w * .16, 36, 0));
+    for(const [x, z] of [[-w * .32, -20], [-w * .32, 20], [w * .32, -20], [w * .32, 20]]) g.add(P3(CY(9, 9, 6, "#263238", 14).rotateX(Math.PI / 2), x, 9, z));
+    g.add(P3(CY(8, 8, 5, "#263238", 12).rotateZ(Math.PI / 2), -w / 2 - 3, 24, 0)); const l = label3("GETAWAY 🚙", 40, 8, "#FFFFFF", "#33691E"); l.position.set(0, 50, 0); l.rotation.x = -.6; g.add(l);
+    g.userData.anim = (t, F) => { l.visible = !!F.gotHippo; }; return g; },
+});
+
+Object.assign(FIXT, {
+  hippofam(f){ const g = new THREE.Group(), bods = []; [[0, 0, 1], [36, 14, .8], [-30, 16, .5]].forEach(([x, z, s], i) => { const h = new THREE.Group(); h.position.set(x, 0, z); h.scale.setScalar(s); g.add(h); bods.push(h);
+      h.add(P3(SC3(SM(18, "#7E6B8F", 14, 10), 1.5, .8, 1), 0, 6, 0)); h.add(P3(SC3(SM(11, "#8E7BA0", 12, 8), 1.2, .9, 1.1), 26, 10, 0)); h.add(P3(SC3(SM(7, "#F3B6C8", 10, 8), 1, .6, 1.1), 34, 7, 0));
+      for(const q of [-1, 1]){ h.add(P3(SM(2, "#FFFFFF", 8, 6), 26, 18, q * 5)); h.add(P3(SM(1, "#212121", 6, 4), 28, 18.4, q * 5.2)); h.add(P3(SM(2.2, "#7E6B8F", 8, 6), 20, 20, q * 7)); } });
+    g.userData.anim = t => bods.forEach((b, k) => { b.position.y = Math.sin(t * 1.4 + k) * 1.6 - 6; b.rotation.y = Math.sin(t * .3 + k) * .2; }); return g; },
+  straps(f){ const g = G3(P3(CY(.5, .5, 30, "#212121", 4).rotateZ(Math.PI / 2), 0, 40, 0)); g.userData.anim = (t, F) => { g.visible = !!F.strapsTied; }; return g; },
+  bucket(f){ return G3(P3(CY(8, 6, 14, "#1E88E5", 14), 0, 7, 0), P3(CY(8.2, 8.2, 1, "#1565C0", 14), 0, 14, 0)); },
+});
+
+Object.assign(PROPS, {
+  rmap(){ const g = G3(P3(B3(16, .6, 11, "#FFF8E1"), 0, 1, 0), P3(B3(14, .7, 2, "#4FC3F7"), 0, 1.4, -1), P3(B3(2, .8, 2, "#E53935"), 4, 1.5, 3)); g.children[0].rotation.y = .1; return g; },
+  menu(){ return G3(P3(B3(9, 1, 14, "#00897B"), 0, 1, 0), P3(B3(7, 1.2, 10, "#FFFFFF"), 0, 1.4, 0)); },
+  ghippo(){ const g = new THREE.Group(), Gd = "#FFC107"; g.add(P3(CY(6, 7, 4, "#5D4037", 14), 0, 2, 0)); g.add(P3(SC3(SM(7, Gd, 14, 10, {emissive: "#6D4C00"}), 1.4, .8, 1), 0, 11, 0)); g.add(P3(SC3(SM(4.6, Gd, 12, 8, {emissive: "#6D4C00"}), 1.1, .9, 1.1), 9, 13, 0));
+    for(const s of [-1, 1]){ g.add(P3(SM(1.4, Gd, 8, 6), 6, 18, s * 2.6)); g.add(P3(CY(1.6, 1.6, 5, Gd, 8), -5, 5.5, s * 4)); g.add(P3(CY(1.6, 1.6, 5, Gd, 8), 5, 5.5, s * 4)); } return g; },
+  log(){ const g = G3(P3(CY(7, 7, 60, "#6D4C41", 12).rotateZ(Math.PI / 2), 0, 4, 0)); for(const s of [-1, 1]) g.add(P3(CY(6.4, 6.4, 1, "#BCAAA4", 12).rotateZ(Math.PI / 2), s * 30.5, 4, 0));
+    for(const s of [-1, 1]) g.add(P3(SM(1.6, "#FFEB3B", 8, 6), 20, 9, s * 3)); return g; },
+});
+
+DECOR.river = (S, A) => { const root = new THREE.Group(); S.add(root);
+  for(let k = 0; k < 40; k++){ const x = hsh3(k * 3.3) * AW, y = k % 2 ? 690 : 910; root.add(P3(CY(.8, 1.2, 18 + hsh3(k) * 14, "#7CB342", 4), x, 9, y + (hsh3(k + 9) - .5) * 20)); }
+  for(let k = 0; k < 14; k++) root.add(P3(SC3(SM(8, "#9E9E9E", 8, 6), 1, .45, 1), 60 + k * 100, 2, 700 + (k % 2) * 200));
+  const s = label3("HIPPO VIEWING", 60, 10, "#FFFFFF", "#6D4C41"); s.position.set(550, 40, 690); root.add(s);
+  return {batch: [root]}; };
+
 class R3 {
   constructor(play, stage){
     this.p = play; this.A = play.A; const A = this.A;
@@ -3570,7 +4041,7 @@ class R3 {
     R.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
     const S = this.s = new THREE.Scene(); S.background = new THREE.Color("#BFE6F5"); S.fog = new THREE.Fog("#BFE6F5", 900, 2200);
     this.cam = new THREE.PerspectiveCamera(46, 1, 10, 4000);
-    S.add(new THREE.HemisphereLight("#FFF4DE", "#7C9A5C", .68)); S.add(new THREE.AmbientLight("#FFE8C8", .08));
+    S.add(this.hemi = new THREE.HemisphereLight("#FFF4DE", "#7C9A5C", .68)); S.add(new THREE.AmbientLight("#FFE8C8", .08));
     const sun = this.sun = new THREE.DirectionalLight("#FFF1D6", .62); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.intensity = .7; sun.shadow.radius = 3;
     Object.assign(sun.shadow.camera, {left: -420, right: 420, top: 420, bottom: -420, near: 50, far: 1400}); sun.shadow.bias = -.0015; S.add(sun); S.add(sun.target);
     this.buildWorld(); this.buildActors(); this.tgt = new THREE.Vector3(play.a.x, 0, play.a.y); this.v = new THREE.Vector3(); this.fxl = []; this.cut = [];
@@ -3584,7 +4055,7 @@ class R3 {
     const S = this.s, A = this.A;
     const grassT = texCanvas(256, 256, (c, w, h) => { c.fillStyle = "#93CF63"; c.fillRect(0, 0, w, h); for(let i = 0; i < 900; i++){ c.fillStyle = ["#86C457", "#9FD86E", "#8BC95C", "#A5DB78"][i % 4]; c.fillRect(hsh3(i) * w, hsh3(i + 7) * h, 2, 5); } });
     grassT.wrapS = grassT.wrapT = THREE.RepeatWrapping; grassT.repeat.set(30, 30);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(3200, 3200), new THREE.MeshLambertMaterial({map: grassT})); ground.rotation.x = -Math.PI / 2; ground.position.set(AW / 2, 0, AH / 2); ground.receiveShadow = true; S.add(ground);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(3200, 3200), new THREE.MeshLambertMaterial({map: grassT})); ground.rotation.x = -Math.PI / 2; ground.position.set(AW / 2, 0, AH / 2); ground.receiveShadow = true; S.add(ground); if(A.side) ground.visible = false;
     const wood = texCanvas(256, 256, (c, w, h) => { for(let y = 0; y < 8; y++){ c.fillStyle = y % 2 ? "#D9B98A" : "#E4C79C"; c.fillRect(0, y * 32, w, 32); c.fillStyle = "#B8946A"; c.fillRect(0, y * 32, w, 2); c.fillRect(((y * 97) % 200) + 20, y * 32, 2, 32); } });
     wood.wrapS = wood.wrapT = THREE.RepeatWrapping;
     const pave = texCanvas(256, 256, (c, w, h) => { c.fillStyle = "#E7D5AE"; c.fillRect(0, 0, w, h); c.strokeStyle = "#CDB98E"; c.lineWidth = 3; for(let y = 0; y < 4; y++) for(let x = 0; x < 4; x++) c.strokeRect(x * 64 + (y % 2) * 32, y * 64, 64, 64); });
@@ -3643,10 +4114,10 @@ class R3 {
       else for(let k = 0; k < 3; k++){ const c = new THREE.Mesh(new THREE.IcosahedronGeometry(r * (.75 - k * .12), 0), m3(["#5DAA4A", "#6DBB55", "#55A043"][k])); c.position.set((k - 1) * r * .35, h + r * .3 + k * r * .35, (k % 2) * r * .3); c.castShadow = true; g.add(c); }
       g.position.set(x, 0, z); g.userData.sway = hsh3(x + z) * 6; S.add(g); return g; };
     this.trees = A.trees.map(([x, y, r]) => tree(x, y, r, false));
-    for(let k = 0; k < 14; k++){ const a = k / 14 * Math.PI * 2, d = 820 + hsh3(k) * 300; tree(AW / 2 + Math.cos(a) * d * AW / 900, AH / 2 + Math.sin(a) * d * 1.1 * AH / 1200, 40 + hsh3(k + 4) * 25, true); }
-    for(let x = 0; x <= AW; x += 30) for(const z of [-6, AH + 6]){ const post = P3(B3(4, 22, 4, "#A1887F"), x, 11, z); S.add(post); }
-    for(let z = 0; z <= AH; z += 30) for(const x of [-6, AW + 6]){ if(x > AW && z > 560 && z < 720) continue; S.add(P3(B3(4, 22, 4, "#A1887F"), x, 11, z)); }
-    for(const z of [-6, AH + 6]) for(const y of [8, 17]) S.add(P3(B3(AW + 12, 2.5, 2, "#BCAAA4"), AW / 2, y, z));
+    if(!A.side) for(let k = 0; k < 14; k++){ const a = k / 14 * Math.PI * 2, d = 820 + hsh3(k) * 300; tree(AW / 2 + Math.cos(a) * d * AW / 900, AH / 2 + Math.sin(a) * d * 1.1 * AH / 1200, 40 + hsh3(k + 4) * 25, true); }
+    if(!A.side) for(let x = 0; x <= AW; x += 30) for(const z of [-6, AH + 6]){ const post = P3(B3(4, 22, 4, "#A1887F"), x, 11, z); S.add(post); }
+    if(!A.side) for(let z = 0; z <= AH; z += 30) for(const x of [-6, AW + 6]){ if(x > AW && z > 560 && z < 720) continue; S.add(P3(B3(4, 22, 4, "#A1887F"), x, 11, z)); }
+    if(!A.side) for(const z of [-6, AH + 6]) for(const y of [8, 17]) S.add(P3(B3(AW + 12, 2.5, 2, "#BCAAA4"), AW / 2, y, z));
     // pen
     if(A.pen && !A.pen.custom){ const [x, y, w, h] = A.pen.r; for(let k = 0; k <= w; k += 20){ S.add(P3(B3(3.5, 32, 3.5, "#8D6E63"), x + k, 16, y)); S.add(P3(B3(3.5, 32, 3.5, "#8D6E63"), x + k, 16, y + h)); }
       for(let k = 0; k <= h; k += 20){ if(Math.abs(y + k - A.pen.r[1] - 70) > 30) S.add(P3(B3(3.5, 32, 3.5, "#8D6E63"), x, 16, y + k)); S.add(P3(B3(3.5, 32, 3.5, "#8D6E63"), x + w, 16, y + k)); }
@@ -3685,8 +4156,8 @@ class R3 {
     // camera: Goose-style angled follow
     this.tgt.lerp(this.v.set(p.a.x, 0, p.a.y), Math.min(1, dt * 4)); const pitch = .92, D = this.dist;
     this.shake = Math.max(0, (this.shake || 0) - dt * 1.6); const shx = this.shake ? (Math.random() - .5) * this.shake * 9 : 0, shy = this.shake ? (Math.random() - .5) * this.shake * 7 : 0;
-    this.cam.position.set(this.tgt.x + shx, Math.sin(pitch) * D + shy, this.tgt.z - 50 + Math.cos(pitch) * D); this.cam.lookAt(this.tgt.x, 18, this.tgt.z - 70);
-    this.sun.position.set(this.tgt.x - 260, 620, this.tgt.z + 160); this.sun.target.position.copy(this.tgt);
+    if(A.side){ const sw = F.curve ? Math.sin(t * 1.3) * 6 : 0; this.cam.position.set(this.tgt.x + shx, D * .3 + shy + sw, A.side.z + D * .7); this.cam.lookAt(this.tgt.x, 40, A.side.z + 10); } else { this.cam.position.set(this.tgt.x + shx, Math.sin(pitch) * D + shy, this.tgt.z - 50 + Math.cos(pitch) * D); this.cam.lookAt(this.tgt.x, 18, this.tgt.z - 70); }
+    if(A.side){ const dk = F.dark ? (F.lampBlocked ? .03 : .2) : 1; this.hemi.intensity += (.68 * dk - this.hemi.intensity) * Math.min(1, dt * 6); this.sun.intensity = .7 * dk; this.s.background.setRGB(F.dark ? .04 : .75, F.dark ? .04 : .9, F.dark ? .07 : .96); } this.sun.position.set(this.tgt.x - 260, 620, this.tgt.z + 160); this.sun.target.position.copy(this.tgt);
     // walls between the camera and you drop to a stub
     const me = p.a; for(const w of this.walls || []){ const [x, y, ww, hh] = w.r; const block = w.horiz ? (y > me.y - 6 && y - me.y < 520 && me.x > x - 140 && me.x < x + ww + 140) : false;
       const s = block ? .14 : 1; w.g.scale.y += (s - w.g.scale.y) * Math.min(1, dt * 8); }
@@ -3762,7 +4233,7 @@ class R3 {
       const mp = this.mouthPos(o.holder, this.v);
       if(def.drag && o.holder === "H"){ g.position.set(mp.x, 0, mp.z); g.rotation.set(0, -a.d + Math.sin(t * 6) * .08, Math.sin(t * 9) * .05); return; }
       g.position.set(mp.x, mp.y - (def.m === "pail" ? 16 : 3), mp.z); g.rotation.set(0, -a.d, Math.sin(t * 7) * .06); return; }
-    if(o.worn === "G" || o.worn === "H"){ const m = this.an[o.worn]; m.g.updateMatrixWorld(true); const tp = m.top.getWorldPosition(this.v); g.position.copy(tp); g.rotation.y = m.g.rotation.y; if(def.m === "flower"){ g.translateZ(5); g.position.y -= 3; g.rotation.z = -.5; } return; }
+    if(o.worn === "G" || o.worn === "H"){ const m = this.an[o.worn]; m.g.updateMatrixWorld(true); const tp = m.top.getWorldPosition(this.v); g.position.copy(tp); g.rotation.y = m.g.rotation.y; if(def.m === "flower"){ g.translateZ(5); g.position.y -= 3; g.rotation.z = -.5; } if(def.wy) g.position.y -= def.wy; return; }
     if(o.holder && npcById[o.holder]){ const h = this.npcM[o.holder]; h.g.updateMatrixWorld(true);
       if(def.neck){ const hp = h.head.getWorldPosition(this.v); g.position.set(hp.x, hp.y - 9, hp.z); g.rotation.y = h.g.rotation.y; return; }
       if(hat && (def.on === o.holder || o.fixed)){ const hp = h.head.getWorldPosition(this.v); g.position.set(hp.x, hp.y + 5, hp.z); g.rotation.y = h.g.rotation.y; return; }
@@ -3840,7 +4311,7 @@ class Play {
     pad(".noise", () => this.action("noise"));
     if(this.role === "G") pad(".spec", () => { this.a.s = 1; }, () => { this.a.s = 0; });
     else pad(".spec", () => { if(this.cd <= 0 && this.stun <= 0 && !this.a.sit){ this.a.c = 1; this.chargeT = CHARGE_TIME; this.cd = CHARGE_CD; } });
-    pad(".sneak", () => { this.a.k = this.a.k ? 0 : 1; if(this.a.k) this.a.r = 0; this.w.querySelector(".sneak").classList.toggle("lit", !!this.a.k); });
+    pad(".sneak", () => { if(this.A.side){ this.a.jp = performance.now(); SFX.boing?.(); return; } this.a.k = this.a.k ? 0 : 1; if(this.a.k) this.a.r = 0; this.w.querySelector(".sneak").classList.toggle("lit", !!this.a.k); });
     pad(".run", () => { this.a.r = 1; this.a.k = 0; this.w.querySelector(".sneak").classList.remove("lit"); }, () => { this.a.r = 0; });
     pad(".sit", () => { if(this.stun > 0) return; this.a.sit = this.a.sit ? 0 : 1; if(this.a.sit){ this.a.s = 0; this.a.c = 0; this.chargeT = 0; SFX.plop(); } this.action(this.a.sit ? "sit" : "stand"); });
   }
@@ -3873,7 +4344,7 @@ class Play {
       if(areaDone(this.A, done) && !this.advancing){ this.advancing = true; setTimeout(() => this.finishCard(), 2500); }
     }
     if(!this.host){ const done = (R.done || {})[this.ai] || {}; if(areaDone(this.A, done) && !this.advancing){ this.advancing = true; setTimeout(() => this.finishCard(), 2500); } }
-    this.sendT += dt; if(this.sendT > .25){ this.sendT = 0; const a = this.a; api.update(rid(S.code) + "_p_" + this.me, {x: Math.round(a.x), y: Math.round(a.y), d: Math.round(a.d * 100) / 100, s: a.s, c: a.c, w: a.w, mv: a.mv, sit: a.sit || 0, k: a.k || 0, r: a.r || 0, ts: Date.now(), area: this.ai}).catch(() => {}); }
+    this.sendT += dt; if(this.sendT > .25){ this.sendT = 0; const a = this.a; api.update(rid(S.code) + "_p_" + this.me, {x: Math.round(a.x), y: Math.round(a.y), d: Math.round(a.d * 100) / 100, s: a.s, c: a.c, w: a.w, mv: a.mv, sit: a.sit || 0, k: a.k || 0, r: a.r || 0, jp: a.jp && performance.now() - a.jp < 650 ? 1 : 0, ts: Date.now(), area: this.ai}).catch(() => {}); }
     this.draw();
   }
   moveMe(dt){
@@ -3895,9 +4366,9 @@ class Play {
   heavyObjs(){ if(this.host) return this.world.objs; const s = this.snapB; if(!s) return [];
     return this.A.objs.filter(o => o.heavy).map(o => { const v = s.o[o.id]; return {x: v[0], y: v[1], r: o.r, heavy: true, gone: v[3]}; }); }
   partnerPos(raw){ const p = this.partner; if(!p) return null;
-    if(raw || !this.pPrev) return {x: p.x, y: p.y, d: p.d, s: p.s, c: p.c, w: p.w, mv: p.mv, sit: p.sit, k: p.k, r: p.r};
+    if(raw || !this.pPrev) return {x: p.x, y: p.y, d: p.d, s: p.s, c: p.c, w: p.w, mv: p.mv, sit: p.sit, k: p.k, r: p.r, jp: p.jp};
     const k = clamp((Date.now() - this.pRecv) / 200, 0, 1), q = this.pPrev; let dd = p.d - q.d; dd = Math.atan2(Math.sin(dd), Math.cos(dd));
-    return {x: q.x + (p.x - q.x) * k, y: q.y + (p.y - q.y) * k, d: q.d + dd * k, s: p.s, c: p.c, w: p.w, mv: p.mv, sit: p.sit, k: p.k, r: p.r}; }
+    return {x: q.x + (p.x - q.x) * k, y: q.y + (p.y - q.y) * k, d: q.d + dd * k, s: p.s, c: p.c, w: p.w, mv: p.mv, sit: p.sit, k: p.k, r: p.r, jp: p.jp}; }
   events(list){
     for(const e of list){ if(e.i <= this.seenE) continue; this.seenE = e.i;
       const mine = e.who === this.role, pp = this.partnerPos();
@@ -3982,7 +4453,7 @@ class Play {
     for(const ex of this.A.exits || []){ if(ex.need && !F[ex.need]) continue; const meIn = inRect(this.a.x, this.a.y, ex.z), paIn = !!pa && inRect(pa.x, pa.y, ex.z);
       if(meIn) mineIn = ex;
       if(this.host && meIn && (paIn || this.solo) && !this.leaving){ this.leaving = true; this.toast("Off to " + ex.label + "…");
-        const ai = this.ai; setTimeout(() => api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; cur.prev = ai; cur.area = ex.to; }).catch(() => { this.leaving = false; }), 600); } }
+        const ai = this.ai; setTimeout(() => api.tx(rid(S.code), cur => { if(cur.area !== ai || cur.phase !== "play") return false; if(ex.to === "jeep") cur.phase = "jeep"; else { cur.prev = ai; cur.area = ex.to; } }).catch(() => { this.leaving = false; }), 600); } }
     if(mineIn && !this.solo && !this.leaving && Date.now() - (this.waitToast || 0) > 3500){ const pin = pa && inRect(pa.x, pa.y, mineIn.z); if(!pin){ this.waitToast = Date.now(); this.toast(`Waiting for ${PNAME[this.prole]} at the gate…`); } } }
   finishCard(){ if(this.dead || this.doneShown) return; this.doneShown = true; SFX.big(); this.fx.push({k: "confetti", x: this.a.x, y: this.a.y, t: this.t}); if(this.r3) this.r3.shake = 1.2;
     this.banner("To-do list complete!", "Everything on the " + this.A.name + " list is done."); }
